@@ -28,11 +28,17 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    // NavHost defines the "routing" for your application
-    NavHost(navController = navController, startDestination = "wellness_main") {
-        // This is the WellnessConnect screen we built earlier
-        composable("wellness_main") {
+    NavHost(navController = navController, startDestination = "login") {
+        composable("login") {
             LoginScreen(navController = navController)
+        }
+
+        composable("MentorSetup") {
+            MentorSetupScreen(navController = navController)
+        }
+
+        composable("student_dashboard") {
+            // StudentDashboard(navController = navController)
         }
 
     }
