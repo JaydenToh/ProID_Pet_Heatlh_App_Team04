@@ -133,7 +133,7 @@ fun LoginScreen(navController: NavController) {
                         } else {
                             // --- SUCCESS LOGIN FLOW ---
                             if (selectedRole == "MENTOR") {
-//                                navController.navigate("") navigate to mentor dashboard
+                                navController.navigate("MentorSetup")
                             } else {
 //                                navController.navigate("") navigate to student dashboard
                             }
