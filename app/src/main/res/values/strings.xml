@@ -8,4 +8,6 @@
     <string name="title_activity_home_screen">HomeScreen</string>
     <string name="title_activity_login_screen">LoginScreen</string>
     <string name="title_activity_signup_screen">SignupScreen</string>
+    <string name="title_activity_resource_item">ResourceItem</string>
+    <string name="title_activity_resources_screen">ResourcesScreen</string>
 </resources>

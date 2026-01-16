@@ -4,11 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -24,40 +21,20 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    LOGIN,
-    SIGNUP,
     SELECT_FOCUS,
     CHOOSE_COMPANION,
-    HOME
+    HOME,
+    RESOURCES
 }
 
 @Composable
 fun AppRoot() {
-    var screen by rememberSaveable { mutableStateOf(Screen.LOGIN) }
+    var screen by rememberSaveable { mutableStateOf(Screen.SELECT_FOCUS) }
 
-    // app state
     var selectedFocus by rememberSaveable { mutableStateOf(setOf<FocusArea>()) }
     var selectedCompanion by rememberSaveable { mutableStateOf<Companion?>(null) }
 
     when (screen) {
-        Screen.LOGIN -> LoginScreen(
-            onLogin = { _, _ ->
-                // TEMP: accept any login
-                screen = Screen.SELECT_FOCUS
-            },
-            onSignUpStudent = {
-                screen = Screen.SIGNUP
-            }
-        )
-
-        Screen.SIGNUP -> SignupScreen(
-            onBack = { screen = Screen.LOGIN },
-            onCreateAccount = { _, _, _, _, _ ->
-                // TEMP: after signup, continue flow
-                screen = Screen.SELECT_FOCUS
-            }
-        )
-
         Screen.SELECT_FOCUS -> SelectFocusScreen(
             selected = selectedFocus,
             onToggle = { area ->
@@ -83,7 +60,12 @@ fun AppRoot() {
             totalXp = 0,
             completed = 0,
             onRequestMentor = { },
-            onExploreResources = { }
+            onExploreResources = { screen = Screen.RESOURCES } // ✅ Home -> Resources
+        )
+
+        Screen.RESOURCES -> ResourcesScreen(
+            selectedFocus = selectedFocus,
+            onBack = { screen = Screen.HOME }
         )
     }
 }

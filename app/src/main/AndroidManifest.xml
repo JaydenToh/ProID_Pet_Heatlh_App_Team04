@@ -12,6 +12,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".ResourcesScreen"
+            android:exported="false"
+            android:label="@string/title_activity_resources_screen"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
+            android:name=".ResourceItem"
+            android:exported="false"
+            android:label="@string/title_activity_resource_item"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
             android:name=".SignupScreen"
             android:exported="false"
             android:label="@string/title_activity_signup_screen"
