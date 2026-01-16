@@ -12,6 +12,31 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".SignupScreen"
+            android:exported="false"
+            android:label="@string/title_activity_signup_screen"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
+            android:name=".LoginScreen"
+            android:exported="false"
+            android:label="@string/title_activity_login_screen"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
+            android:name=".HomeScreen"
+            android:exported="false"
+            android:label="@string/title_activity_home_screen"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
+            android:name=".ChooseCompanionScreen"
+            android:exported="false"
+            android:label="@string/title_activity_choose_companion_screen"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
+            android:name=".Companion"
+            android:exported="false"
+            android:label="@string/title_activity_companion"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"

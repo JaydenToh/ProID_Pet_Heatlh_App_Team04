@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="title_activity_focus_area">FocusArea</string>
+    <string name="title_activity_focus_area.kt">FocusArea.kt</string>
+    <string name="title_activity_select_focus_screen.kt">SelectFocusScreen.kt</string>
+    <string name="title_activity_companion">Companion</string>
+    <string name="title_activity_choose_companion_screen">ChooseCompanionScreen</string>
+    <string name="title_activity_home_screen">HomeScreen</string>
+    <string name="title_activity_login_screen">LoginScreen</string>
+    <string name="title_activity_signup_screen">SignupScreen</string>
 </resources>
