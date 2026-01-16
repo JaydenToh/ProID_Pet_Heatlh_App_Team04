@@ -4,25 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -31,64 +17,73 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                MyApplicationApp()
+                AppRoot()
             }
         }
     }
 }
 
-@PreviewScreenSizes
-@Composable
-fun MyApplicationApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+enum class Screen {
+    LOGIN,
+    SIGNUP,
+    SELECT_FOCUS,
+    CHOOSE_COMPANION,
+    HOME
+}
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            it.icon,
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
-                )
+@Composable
+fun AppRoot() {
+    var screen by rememberSaveable { mutableStateOf(Screen.LOGIN) }
+
+    // app state
+    var selectedFocus by rememberSaveable { mutableStateOf(setOf<FocusArea>()) }
+    var selectedCompanion by rememberSaveable { mutableStateOf<Companion?>(null) }
+
+    when (screen) {
+        Screen.LOGIN -> LoginScreen(
+            onLogin = { _, _ ->
+                // TEMP: accept any login
+                screen = Screen.SELECT_FOCUS
+            },
+            onSignUpStudent = {
+                screen = Screen.SIGNUP
             }
-        }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
-        }
-    }
-}
+        )
 
-enum class AppDestinations(
-    val label: String,
-    val icon: ImageVector,
-) {
-    HOME("Home", Icons.Default.Home),
-    FAVORITES("Favorites", Icons.Default.Favorite),
-    PROFILE("Profile", Icons.Default.AccountBox),
-}
+        Screen.SIGNUP -> SignupScreen(
+            onBack = { screen = Screen.LOGIN },
+            onCreateAccount = { _, _, _, _, _ ->
+                // TEMP: after signup, continue flow
+                screen = Screen.SELECT_FOCUS
+            }
+        )
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+        Screen.SELECT_FOCUS -> SelectFocusScreen(
+            selected = selectedFocus,
+            onToggle = { area ->
+                selectedFocus =
+                    if (selectedFocus.contains(area)) selectedFocus - area else selectedFocus + area
+            },
+            onContinue = { screen = Screen.CHOOSE_COMPANION }
+        )
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MyApplicationTheme {
-        Greeting("Android")
+        Screen.CHOOSE_COMPANION -> ChooseCompanionScreen(
+            selected = selectedCompanion,
+            onSelect = { selectedCompanion = it },
+            onBack = { screen = Screen.SELECT_FOCUS },
+            onStart = { screen = Screen.HOME }
+        )
+
+        Screen.HOME -> HomeScreen(
+            petName = "Kitten",
+            petStageText = "Stage 1/5",
+            xp = 0,
+            xpGoal = 100,
+            streakDays = 0,
+            totalXp = 0,
+            completed = 0,
+            onRequestMentor = { },
+            onExploreResources = { }
+        )
     }
 }
