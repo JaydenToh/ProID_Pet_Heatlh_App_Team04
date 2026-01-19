@@ -12,36 +12,78 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResourcesScreen(
-    selectedFocus: Set<FocusArea>,
-    onBack: () -> Unit
+    navController: NavController,
+    appState: AppState
 ) {
-    // Convert your selected focus to chip labels
+    val selectedFocus = appState.selectedFocus
+
+    // Convert selected focus to chip labels (always include "All")
     val focusChips = remember(selectedFocus) {
         val list = selectedFocus.map { it.label }
-        // Always include "All" at the front
         listOf("All") + list.ifEmpty { listOf("Anxiety", "Stress", "Depression", "Motivation", "Sleep") }
     }
 
     var selectedChip by rememberSaveable { mutableStateOf("All") }
 
-    // Sample resources (you can expand later)
+    // Sample resources (update these later / move to DB)
     val allResources = remember {
         listOf(
-            ResourceItem("Anxiety", "Breathing Reset", 3, ResourceType.QUIZ, 15),
-            ResourceItem("Sleep", "Sleep Hygiene Basics", 5, ResourceType.TASKS, 20),
-            ResourceItem("Motivation", "Small Wins Plan", 4, ResourceType.TASKS, 15),
-            ResourceItem("Stress", "Stress Response Reset", 4, ResourceType.QUIZ, 15),
-            ResourceItem("Depression", "Mood Journal Check-in", 5, ResourceType.TASKS, 15),
+            ResourceItem(
+                id = "res_1",
+                focusArea = FocusArea.ANXIETY,
+                title = "Breathing Reset",
+                description = "A short breathing exercise to calm your mind.",
+                minutes = 3,
+                type = ResourceType.QUIZ,
+                xp = 15
+            ),
+            ResourceItem(
+                id = "res_2",
+                focusArea = FocusArea.SLEEP,
+                title = "Sleep Hygiene Basics",
+                description = "Simple habits that improve sleep quality.",
+                minutes = 5,
+                type = ResourceType.TASK,
+                xp = 20
+            ),
+            ResourceItem(
+                id = "res_3",
+                focusArea = FocusArea.MOTIVATION,
+                title = "Small Wins Plan",
+                description = "Build momentum with small achievable goals.",
+                minutes = 4,
+                type = ResourceType.TASK,
+                xp = 15
+            ),
+            ResourceItem(
+                id = "res_4",
+                focusArea = FocusArea.STRESS,
+                title = "Stress Response Reset",
+                description = "Understand and reset your stress response.",
+                minutes = 4,
+                type = ResourceType.QUIZ,
+                xp = 15
+            ),
+            ResourceItem(
+                id = "res_5",
+                focusArea = FocusArea.DEPRESSION,
+                title = "Mood Journal Check-in",
+                description = "Reflect and track your mood with prompts.",
+                minutes = 5,
+                type = ResourceType.TASK,
+                xp = 15
+            ),
         )
     }
 
     val filtered = remember(selectedChip, allResources) {
         if (selectedChip == "All") allResources
-        else allResources.filter { it.category.equals(selectedChip, ignoreCase = true) }
+        else allResources.filter { it.focusArea.label.equals(selectedChip, ignoreCase = true) }
     }
 
     Scaffold(
@@ -49,7 +91,7 @@ fun ResourcesScreen(
             TopAppBar(
                 title = { Text("Resources") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Back") }
+                    TextButton(onClick = { navController.popBackStack() }) { Text("Back") }
                 },
                 actions = {
                     Text(
@@ -66,7 +108,7 @@ fun ResourcesScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Chips row (like your mock)
+            // Chips row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -83,7 +125,6 @@ fun ResourcesScreen(
                 }
             }
 
-            // Optional: small fake scroll bar area to mimic your UI
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -100,7 +141,6 @@ fun ResourcesScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            // Resource list
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -139,7 +179,7 @@ private fun ResourceCard(
             ) {
                 AssistChip(
                     onClick = { /* no-op */ },
-                    label = { Text(item.category) }
+                    label = { Text(item.focusArea.label) }
                 )
 
                 Spacer(Modifier.weight(1f))
@@ -159,6 +199,14 @@ private fun ResourceCard(
             )
 
             Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = item.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(10.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,

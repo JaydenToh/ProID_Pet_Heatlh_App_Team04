@@ -2,13 +2,15 @@ package com.example.myapplication
 
 enum class ResourceType(val label: String) {
     QUIZ("Quiz"),
-    TASKS("Tasks")
+    TASK("Task")
 }
 
 data class ResourceItem(
-    val category: String,     // e.g. "Anxiety"
-    val title: String,        // e.g. "Breathing Reset"
-    val minutes: Int,         // e.g. 3
-    val type: ResourceType,   // Quiz / Tasks
-    val xp: Int               // e.g. 15
+    val id: String,              // unique ID
+    val focusArea: FocusArea,    // Anxiety, Sleep, Stress, etc.
+    val title: String,           // "Breathing Reset"
+    val description: String,     // short explanation
+    val minutes: Int,            // 3
+    val type: ResourceType,      // QUIZ / TASK
+    val xp: Int                  // 15
 )

@@ -135,7 +135,9 @@ fun LoginScreen(navController: NavController) {
                             if (selectedRole == "MENTOR") {
                                 navController.navigate("MentorSetup")
                             } else {
-//                                navController.navigate("") navigate to student dashboard
+                                navController.navigate("student_dashboard") {
+                                    popUpTo("login") { inclusive = true }
+                                }
                             }
                         }
                     } else {

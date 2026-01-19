@@ -11,26 +11,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    petName: String,
-    petStageText: String,
-    xp: Int,
-    xpGoal: Int,
-    streakDays: Int,
-    totalXp: Int,
-    completed: Int,
-    onRequestMentor: () -> Unit,
-    onExploreResources: () -> Unit
+    navController: NavController,
+    appState: AppState
 ) {
+    val selectedCompanion = appState.selectedCompanion
+
+    // you can wire these to real values later
+    val petName = selectedCompanion?.title ?: "Your Pet"
+    val petEmoji = selectedCompanion?.emoji ?: "🐱"
+    val petStageText = "Stage 1/5"
+    val xp = 0
+    val xpGoal = 100
+    val streakDays = 0
+    val totalXp = 0
+    val completed = 0
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Home") },
                 actions = {
-                    Text("≡", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(end = 16.dp))
+                    Text(
+                        "≡",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(end = 16.dp)
+                    )
                 }
             )
         }
@@ -43,13 +53,11 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // Streak
             Text(
                 text = "🔥  $streakDays day streak",
                 style = MaterialTheme.typography.titleSmall
             )
 
-            // Wellness Pet card
             Card(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -58,7 +66,6 @@ fun HomeScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Pet icon placeholder (emoji)
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -66,7 +73,7 @@ fun HomeScreen(
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🐱", style = MaterialTheme.typography.headlineSmall)
+                        Text(petEmoji, style = MaterialTheme.typography.headlineSmall)
                     }
 
                     Spacer(Modifier.width(12.dp))
@@ -97,14 +104,21 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("$xp XP", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$xpGoal XP", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "$xp XP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                "$xpGoal XP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
 
-            // Mentor section
             Text(
                 text = "Your Mentor",
                 style = MaterialTheme.typography.titleSmall
@@ -141,7 +155,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(12.dp))
 
                     Button(
-                        onClick = onRequestMentor,
+                        onClick = { navController.navigate("MentorSetup") },
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.height(44.dp)
                     ) {
@@ -150,7 +164,6 @@ fun HomeScreen(
                 }
             }
 
-            // Explore Resources card
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -158,7 +171,7 @@ fun HomeScreen(
                 shadowElevation = 0.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onExploreResources() }
+                    .clickable { navController.navigate("resources") }
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -174,17 +187,28 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "›",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
-            // Stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                StatCard(title = "Total XP", value = totalXp.toString(), modifier = Modifier.weight(1f))
-                StatCard(title = "Completed", value = completed.toString(), modifier = Modifier.weight(1f))
+                StatCard(
+                    title = "Total XP",
+                    value = totalXp.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Completed",
+                    value = completed.toString(),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -201,7 +225,11 @@ private fun StatCard(title: String, value: String, modifier: Modifier = Modifier
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(value, style = MaterialTheme.typography.headlineSmall)
-            Text(title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                title,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

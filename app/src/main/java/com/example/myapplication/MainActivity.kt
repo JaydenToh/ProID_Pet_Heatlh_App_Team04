@@ -6,9 +6,15 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.remember
+import kotlin.collections.plus
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,7 +33,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-
+    val appState = remember { AppState() }
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
             LoginScreen(navController = navController)
@@ -38,9 +44,10 @@ fun AppNavigation() {
         }
 
         composable("student_dashboard") {
-            // StudentDashboard(navController = navController)
+            SelectFocusScreen(
+                navController = navController,
+                appState = appState
+            )
         }
-
     }
 }
-

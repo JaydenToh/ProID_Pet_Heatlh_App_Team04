@@ -14,21 +14,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChooseCompanionScreen(
-    selected: Companion?,
-    onSelect: (Companion) -> Unit,
-    onBack: () -> Unit,
-    onStart: () -> Unit
+    navController: NavController,
+    appState: AppState
 ) {
+    val selected = appState.selectedCompanion
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Choose Your Companion") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("‹") } // simple back like your mock
+                    TextButton(onClick = { navController.popBackStack() }) { Text("‹") }
                 }
             )
         },
@@ -40,7 +41,7 @@ fun ChooseCompanionScreen(
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Button(
-                    onClick = onStart,
+                    onClick = { navController.navigate("home") },
                     enabled = selected != null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -76,7 +77,7 @@ fun ChooseCompanionScreen(
                     CompanionRow(
                         pet = pet,
                         selected = pet == selected,
-                        onClick = { onSelect(pet) }
+                        onClick = { appState.selectedCompanion = pet }
                     )
                 }
             }
@@ -118,7 +119,6 @@ private fun CompanionRow(
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // emoji icon
             Text(text = pet.emoji, style = MaterialTheme.typography.headlineSmall)
 
             Spacer(Modifier.width(12.dp))
@@ -133,7 +133,6 @@ private fun CompanionRow(
                 )
             }
 
-            // check indicator
             if (selected) {
                 Box(
                     modifier = Modifier

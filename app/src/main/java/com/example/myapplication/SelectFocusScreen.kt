@@ -12,14 +12,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectFocusScreen(
-    selected: Set<FocusArea>,
-    onToggle: (FocusArea) -> Unit,
-    onContinue: () -> Unit
+    navController: NavController,
+    appState: AppState
 ) {
+    val selected = appState.selectedFocus
     val rows = FocusArea.entries.chunked(2)
 
     Scaffold(
@@ -32,7 +33,7 @@ fun SelectFocusScreen(
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Button(
-                    onClick = onContinue,
+                    onClick = { navController.navigate("choose_companion") },
                     enabled = selected.isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -68,7 +69,6 @@ fun SelectFocusScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ✅ This area fills the remaining height, but cards do NOT stretch.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -84,14 +84,16 @@ fun SelectFocusScreen(
                             FocusCard(
                                 area = area,
                                 selected = selected.contains(area),
-                                onClick = { onToggle(area) },
+                                onClick = {
+                                    appState.selectedFocus =
+                                        if (selected.contains(area)) selected - area else selected + area
+                                },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(96.dp) // ✅ fixed height (no stretching)
+                                    .height(96.dp)
                             )
                         }
 
-                        // If last row has 1 item, keep spacing consistent
                         if (row.size == 1) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
@@ -130,8 +132,8 @@ private fun FocusCard(
             .clickable { onClick() },
         shape = shape,
         color = bgColor,
-        tonalElevation = 0.dp,   // ✅ remove shadow
-        shadowElevation = 0.dp,  // ✅ remove shadow
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         border = BorderStroke(border, borderColor)
     ) {
         Box(
@@ -139,7 +141,6 @@ private fun FocusCard(
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
-            // ✅ Center emoji + label
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -158,7 +159,6 @@ private fun FocusCard(
                 )
             }
 
-            // ✅ Clear selection indicator (top-right badge)
             if (selected) {
                 Box(
                     modifier = Modifier
