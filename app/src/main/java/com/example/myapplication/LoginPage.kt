@@ -16,7 +16,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.input.VisualTransformation
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
 // Wellness Palette
 val WellnessCharcoal = Color(0xFF1A1C2E)
 val WellnessGrayBorder = Color(0xFFE0E0E0)
@@ -68,7 +72,7 @@ fun LoginScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(32.dp))
 
 
-        WellnessTextField(value = email, onValueChange = { email = it }, label = "Username")
+        WellnessTextField(value = email, onValueChange = { email = it }, label = "Email")
         Spacer(modifier = Modifier.height(12.dp))
         WellnessTextField(value = password, onValueChange = { password = it }, label = "Password", isPassword = true)
 
@@ -120,26 +124,39 @@ fun LoginScreen(navController: NavController) {
                         firebaseHelper.signIn(email, password)
                     }
 
-                    isLoading = false
                     if (success) {
-                        if (isSignUp) {
-                            // --- SUCCESS SIGN UP FLOW ---
-                            isSuccess = true
-                            kotlinx.coroutines.delay(2000)
-                            isSuccess = false
-                            isSignUp = false // Redirect back to login view
-                            email = "" // Clear fields for security
-                            password = ""
-                        } else {
-                            // --- SUCCESS LOGIN FLOW ---
-                            if (selectedRole == "MENTOR") {
-                                navController.navigate("MentorSetup")
-                            } else {
-//                                navController.navigate("") navigate to student dashboard
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                        val db = FirebaseFirestore.getInstance()
+
+                        try {
+                            // Fetch the document and WAIT for it to finish before moving to the next line
+                            val doc = db.collection("users").document(userId).get().await()
+
+                            val role = doc.getString("role") ?: "MENTEE"
+                            val name = doc.getString("name") ?: ""
+                            val bio = doc.getString("bio") ?: ""
+
+                            isLoading = false // Move this here so it stays loading until navigation
+
+                            when (role) {
+                                "MENTOR" -> {
+                                    if (name.isEmpty() || bio.isEmpty()) {
+                                        navController.navigate("MentorSetup")
+                                    } else {
+                                        navController.navigate("MentorDashboard")
+                                    }
+                                }
+                                "MENTEE" -> {
+                                    navController.navigate("student_dashboard")
+                                }
                             }
+                        } catch (e: Exception) {
+                            isLoading = false
+                            errorMessage = "Error fetching user data: ${e.message}"
                         }
                     } else {
-                        errorMessage = if (isSignUp) "Sign up failed. Try again." else "Invalid credentials."
+                        isLoading = false
+                        errorMessage = if (isSignUp) "Sign up failed." else "Invalid credentials."
                     }
                 }
             },
@@ -161,10 +178,15 @@ fun LoginScreen(navController: NavController) {
         // Toggle Sign Up
         Box(modifier = Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
             if (selectedRole == "MENTEE") {
-                TextButton(onClick = { isSignUp = !isSignUp; errorMessage = null }) {
+                TextButton(onClick = {
+                    // Redirect to the separate SignUpScreen composable
+                    navController.navigate("signup")
+                    errorMessage = null
+                }) {
                     Text(
-                        text = if (isSignUp) "Already have an account? Login" else "New student? Sign up here",
-                        color = WellnessCharcoal, fontSize = 13.sp
+                        text = "New student? Sign up here",
+                        color = WellnessCharcoal,
+                        fontSize = 13.sp
                     )
                 }
             } else {
@@ -209,4 +231,57 @@ fun WellnessTextField(value: String, onValueChange: (String) -> Unit, label: Str
             unfocusedBorderColor = WellnessGrayBorder
         )
     )
+}
+
+@Composable
+fun SignUpScreen(navController: NavController) {
+    val scope = rememberCoroutineScope()
+    val firebaseHelper = remember { FirebaseHelper() }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Student Registration", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = WellnessCharcoal)
+        Text("Create an account to find a mentor", fontSize = 14.sp, color = WellnessSubtext)
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        WellnessTextField(email, { email = it }, "Student Email")
+        Spacer(modifier = Modifier.height(12.dp))
+        WellnessTextField(password, { password = it }, "Password (6+ characters)", isPassword = true)
+
+        if (errorMessage != null) {
+            Text(errorMessage!!, color = Color.Red, fontSize = 12.sp)
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = {
+                isLoading = true
+                scope.launch {
+                    // Force the role to "MENTEE"
+                    val success = firebaseHelper.signUp(email, password, "MENTEE")
+                    isLoading = false
+                    if (success) {
+                        navController.navigate("login") { popUpTo("signup") { inclusive = true } }
+                    } else {
+                        errorMessage = "Registration failed."
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = WellnessCharcoal),
+            shape = RoundedCornerShape(12.dp),
+            enabled = !isLoading
+        ) {
+            if (isLoading) CircularProgressIndicator(color = Color.White) else Text("Sign Up")
+        }
+    }
 }
