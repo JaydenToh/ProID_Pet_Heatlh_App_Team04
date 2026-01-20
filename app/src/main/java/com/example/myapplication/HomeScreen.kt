@@ -131,51 +131,6 @@ fun HomeScreen(
                 }
             }
 
-            Text(
-                text = "Your Mentor",
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("👤", style = MaterialTheme.typography.headlineSmall)
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Text(
-                        text = "You haven't been matched with\na mentor yet",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Button(
-                        onClick = { navController.navigate("MentorSetup") },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.height(44.dp)
-                    ) {
-                        Text("Request a Mentor")
-                    }
-                }
-            }
-
             // Pet logo button
             Surface(
                 modifier = Modifier
@@ -197,6 +152,17 @@ fun HomeScreen(
                         text = "Click to interact with your pet"
                     )
                 }
+            }
+
+            // Add Shop Button (link to Shop Screen)
+            Button(
+                onClick = { navController.navigate("shop") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Go to Shop")
             }
 
             Row(
