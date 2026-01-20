@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.myapplication.MentorProfile
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +24,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
+//data class MentorProfile(
+//    val name: String = "",
+//    val bio: String = "",
+//    val email: String = "",
+//    val role: String = "",
+//    val availability: String = "",
+//    val supportAreas: List<String> = emptyList(),
+//    val verified: Boolean = false
+//)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -33,12 +42,20 @@ fun AppNavigation() {
             LoginScreen(navController = navController)
         }
 
+        composable("signup") {
+            SignUpScreen(navController = navController)
+        }
+
         composable("MentorSetup") {
             MentorSetupScreen(navController = navController)
         }
 
         composable("student_dashboard") {
             // StudentDashboard(navController = navController)
+        }
+
+        composable("MentorDashboard") {
+            MentorDashboard(navController = navController)
         }
 
     }
