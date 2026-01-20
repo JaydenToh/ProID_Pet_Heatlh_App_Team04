@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,11 +11,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +27,9 @@ fun ChooseCompanionScreen(
     appState: AppState
 ) {
     val selected = appState.selectedCompanion
+
+    val scope = rememberCoroutineScope()
+    val repo = remember { CompanionRepository() }
 
     Scaffold(
         topBar = {
@@ -41,7 +48,33 @@ fun ChooseCompanionScreen(
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Button(
-                    onClick = { navController.navigate("home") },
+                    onClick = {
+                        val pet = selected ?: return@Button
+
+                        // Save selected companion to Firestore
+                        scope.launch {
+                            try {
+                                repo.saveCompanionState(
+                                    selectedCompanion = pet.name,
+                                    level = 1,
+                                    xp = 0,
+                                    xpGoal = 100,
+                                    foodBasics = 0
+                                )
+                                // Log the successful navigation action
+                                Log.d("Navigation", "Navigating to home")
+
+                                // Navigate to Home and clear back stack up to focus screen
+                                navController.navigate("home") {
+                                    popUpTo("student_dashboard") { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            } catch (e: Exception) {
+                                // Handle Firestore errors
+                                Log.e("Navigation", "Firestore Save Failed", e)
+                            }
+                        }
+                    },
                     enabled = selected != null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -84,6 +117,7 @@ fun ChooseCompanionScreen(
         }
     }
 }
+
 
 @Composable
 private fun CompanionRow(

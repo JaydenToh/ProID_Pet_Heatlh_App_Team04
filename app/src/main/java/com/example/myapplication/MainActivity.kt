@@ -49,5 +49,19 @@ fun AppNavigation() {
                 appState = appState
             )
         }
+        composable("choose_companion") {
+            ChooseCompanionScreen(navController = navController, appState = appState)
+        }
+
+        composable("home") {
+            HomeScreen(navController = navController, appState = appState)
+        }
+        composable("companion_details") {
+            CompanionDetailScreen(navController = navController, appState = appState)
+        }
+        composable(route = "shop") {
+            ShopScreen(navController = navController)
+        }
+
     }
 }

@@ -68,4 +68,6 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
+    implementation("androidx.navigation:navigation-compose:2.4.0")
 }

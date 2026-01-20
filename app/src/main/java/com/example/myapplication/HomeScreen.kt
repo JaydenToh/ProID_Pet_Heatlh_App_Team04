@@ -1,17 +1,21 @@
 package com.example.myapplication
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,30 +24,38 @@ fun HomeScreen(
     appState: AppState
 ) {
     val selectedCompanion = appState.selectedCompanion
+    val scope = rememberCoroutineScope()
+    val db = FirebaseFirestore.getInstance()
 
-    // you can wire these to real values later
     val petName = selectedCompanion?.title ?: "Your Pet"
     val petEmoji = selectedCompanion?.emoji ?: "🐱"
     val petStageText = "Stage 1/5"
-    val xp = 0
     val xpGoal = 100
-    val streakDays = 0
-    val totalXp = 0
-    val completed = 0
+
+    var xp by remember { mutableStateOf(0) }
+    var streakDays by remember { mutableStateOf(0) }
+    var totalXp by remember { mutableStateOf(0) }
+    var completed by remember { mutableStateOf(0) }
+
+    // Fetch companion data from Firestore inside LaunchedEffect
+    LaunchedEffect(key1 = selectedCompanion) {
+        try {
+            val doc = db.collection("companion").document("yourUid") // Use actual user UID here
+                .get()
+                .await()
+
+            val data = doc.data
+            if (data != null) {
+                xp = (data["xp"] as? Int) ?: 0
+                totalXp = (data["totalXp"] as? Int) ?: 0
+            }
+        } catch (e: Exception) {
+            Log.e("Firebase", "Error fetching companion data: ", e)
+        }
+    }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Home") },
-                actions = {
-                    Text(
-                        "≡",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
-                }
-            )
-        }
+        topBar = { TopAppBar(title = { Text("Home") }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -164,33 +176,25 @@ fun HomeScreen(
                 }
             }
 
+            // Pet logo button
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { navController.navigate("resources") }
+                    .height(100.dp)
+                    .padding(16.dp)
+                    .clickable {
+                        navController.navigate("companion_details")
+                    },
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Text("📘", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Explore Resources", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "Lessons, quizzes & tasks",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                     Text(
-                        "›",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Click to interact with your pet"
                     )
                 }
             }

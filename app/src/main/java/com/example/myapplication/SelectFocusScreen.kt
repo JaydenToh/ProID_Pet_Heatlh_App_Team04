@@ -33,7 +33,11 @@ fun SelectFocusScreen(
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Button(
-                    onClick = { navController.navigate("choose_companion") },
+                    onClick = {
+                        navController.navigate("choose_companion") {
+                            launchSingleTop = true
+                        }
+                    },
                     enabled = selected.isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()

@@ -11,4 +11,6 @@
     <string name="title_activity_resource_item">ResourceItem</string>
     <string name="title_activity_resources_screen">ResourcesScreen</string>
     <string name="title_activity_app_state">AppState</string>
+    <string name="title_activity_companion_repository">CompanionRepository</string>
+    <string name="title_activity_companion_detail_screen">CompanionDetailScreen</string>
 </resources>
