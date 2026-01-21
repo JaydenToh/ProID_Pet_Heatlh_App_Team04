@@ -114,7 +114,7 @@ fun MentorSetupScreen(navController: NavController) {
                     val profile = MentorProfile(name, bio, selectedAreas.toList(), selectedAvailability)
                     auth.currentUser?.uid?.let { uid ->
                         db.collection("users").document(uid).set(profile, SetOptions.merge()).await()
-                        navController.navigate("mentor_dashboard")
+                        navController.navigate("MentorDashboard")
                     }
                 }
             },
