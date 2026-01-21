@@ -165,6 +165,17 @@ fun HomeScreen(
                 Text("Go to Shop")
             }
 
+            // Resources Button (link to ResourcesScreen)
+            Button(
+                onClick = { navController.navigate("resources") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Explore Resources")
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)

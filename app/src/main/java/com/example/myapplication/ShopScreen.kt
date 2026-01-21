@@ -1,13 +1,11 @@
 package com.example.myapplication
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
@@ -16,17 +14,14 @@ import androidx.navigation.NavController
 fun ShopScreen(navController: NavController) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Shop") })
-        },
-        bottomBar = {
-            BottomAppBar {
-                Button(
-                    onClick = { /* Handle Cart Action */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Go to Cart")
+            TopAppBar(
+                title = { Text("Shop") },
+                navigationIcon = {
+                    TextButton(onClick = { navController.popBackStack() }) {
+                        Text("Back")
+                    }
                 }
-            }
+            )
         }
     ) { padding ->
         Column(
@@ -66,7 +61,7 @@ fun ItemCard(name: String, price: Int, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Placeholder for the item image
-            Image(painter = painterResource(id = R.drawable.ic_launcher_foreground), contentDescription = null)
+            Text("Image placeholder") // Replace this with Image if needed
 
             Spacer(Modifier.width(16.dp))
 

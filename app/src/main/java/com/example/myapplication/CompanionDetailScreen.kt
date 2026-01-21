@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +39,7 @@ fun CompanionDetailScreen(
     val xpGoal = 100
     var xp = 0
     var foodBasics = 0
+    var pettingCount by remember { mutableStateOf(0) } // Track petting count
 
     // Placeholder data
     var streakDays = 0
@@ -74,14 +73,15 @@ fun CompanionDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Cat Interaction Area
+            // Cat Interaction Area with clickable pet (petting)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
                         // Handle pet interaction (petting) logic
-                        xp += 10
-                        foodBasics -= 1
+                        pettingCount += 1
+                        xp += 10  // Increase XP for petting
+                        foodBasics -= 1  // Decrease food for interaction
                     }
             ) {
                 // Cat Animation (Lottie)
@@ -161,22 +161,3 @@ fun CompanionDetailScreen(
     }
 }
 
-@Composable
-private fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = modifier
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(value, style = MaterialTheme.typography.headlineSmall)
-            Text(
-                title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
