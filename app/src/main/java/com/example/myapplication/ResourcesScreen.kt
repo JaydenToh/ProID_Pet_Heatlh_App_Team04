@@ -148,7 +148,12 @@ fun ResourcesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 filtered.forEach { item ->
-                    ResourceCard(item = item, onClick = { /* later open detail */ })
+                    ResourceCard(item = item, onClick = {
+                        if (item.id == "res_1") {
+                            navController.navigate("resource_1") // Navigate to Resource1 screen (Breathing Reset)
+                        }
+                        // Handle navigation for other resources if needed
+                    })
                 }
             }
         }
