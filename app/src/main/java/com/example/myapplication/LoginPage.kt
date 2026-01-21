@@ -125,6 +125,21 @@ fun LoginScreen(navController: NavController) {
                     }
 
                     if (success) {
+                        if (isSignUp) {
+                            // --- SUCCESS SIGN UP FLOW ---
+                            isSuccess = true
+                            kotlinx.coroutines.delay(2000)
+                            isSuccess = false
+                            isSignUp = false // Redirect back to login view
+                            email = "" // Clear fields for security
+                            password = ""
+                        } else {
+                            // --- SUCCESS LOGIN FLOW ---
+                            if (selectedRole == "MENTOR") {
+                                navController.navigate("MentorSetup")
+                            } else {
+                                navController.navigate("student_dashboard") {
+                                    popUpTo("login") { inclusive = true }
                         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
                         val db = FirebaseFirestore.getInstance()
 

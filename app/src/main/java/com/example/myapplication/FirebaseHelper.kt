@@ -43,4 +43,26 @@ class FirebaseHelper{
             false
         }
     }
+
+    suspend fun saveCompanionState(userId: String, selectedCompanion: String, level: Int, xp: Int, xpGoal: Int, foodBasics: Int) {
+        try {
+            FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(userId)
+                .collection("companion")
+                .document(selectedCompanion)  // Use companion name as the document ID
+                .set(
+                    mapOf(
+                        "level" to level,
+                        "xp" to xp,
+                        "xpGoal" to xpGoal,
+                        "foodBasics" to foodBasics
+                    )
+                )
+                .await()  // Ensure the data is saved before moving to the next screen
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error saving companion data", e)
+        }
+    }
 }
+

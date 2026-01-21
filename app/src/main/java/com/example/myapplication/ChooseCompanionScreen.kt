@@ -1,34 +1,38 @@
 package com.example.myapplication
 
-import androidx.compose.foundation.BorderStroke
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChooseCompanionScreen(
-    selected: Companion?,
-    onSelect: (Companion) -> Unit,
-    onBack: () -> Unit,
-    onStart: () -> Unit
+    navController: NavController,
+    appState: AppState
 ) {
+    val selected = appState.selectedCompanion
+    val scope = rememberCoroutineScope()
+    val firebaseHelper = remember { FirebaseHelper() }  // Using FirebaseHelper to save companion data
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Choose Your Companion") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("‹") } // simple back like your mock
+                    TextButton(onClick = { navController.popBackStack() }) { Text("‹") }
                 }
             )
         },
@@ -40,7 +44,41 @@ fun ChooseCompanionScreen(
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Button(
-                    onClick = onStart,
+                    onClick = {
+                        val pet = selected ?: return@Button
+
+                        val currentUser = FirebaseAuth.getInstance().currentUser
+
+                        if (currentUser != null) {
+                            val userId = currentUser.uid // Use userId from FirebaseAuth
+
+                            // Save selected companion to Firestore using FirebaseHelper
+                            scope.launch {
+                                try {
+                                    firebaseHelper.saveCompanionState(
+                                        userId = userId,
+                                        selectedCompanion = pet.name,
+                                        level = 1, // Starting level
+                                        xp = 0,    // Starting XP
+                                        xpGoal = 100, // XP goal
+                                        foodBasics = 0 // Food basics for the companion
+                                    )
+
+                                    // Log the successful action
+                                    Log.d("Navigation", "Companion saved and navigating to home")
+
+                                    // Navigate to Home and clear back stack up to the student dashboard
+                                    navController.navigate("home") {
+                                        popUpTo("student_dashboard") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                } catch (e: Exception) {
+                                    // Handle Firestore errors
+                                    Log.e("Firestore", "Error saving companion data", e)
+                                }
+                            }
+                        }
+                    },
                     enabled = selected != null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -76,7 +114,7 @@ fun ChooseCompanionScreen(
                     CompanionRow(
                         pet = pet,
                         selected = pet == selected,
-                        onClick = { onSelect(pet) }
+                        onClick = { appState.selectedCompanion = pet }
                     )
                 }
             }
@@ -90,7 +128,6 @@ private fun CompanionRow(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(14.dp)
 
     val borderColor =
         if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
@@ -104,13 +141,10 @@ private fun CompanionRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(76.dp)
-            .clip(shape)
             .clickable { onClick() },
-        shape = shape,
         color = bgColor,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
-        border = BorderStroke(borderWidth, borderColor)
     ) {
         Row(
             modifier = Modifier
@@ -118,7 +152,6 @@ private fun CompanionRow(
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // emoji icon
             Text(text = pet.emoji, style = MaterialTheme.typography.headlineSmall)
 
             Spacer(Modifier.width(12.dp))
@@ -133,12 +166,10 @@ private fun CompanionRow(
                 )
             }
 
-            // check indicator
             if (selected) {
                 Box(
                     modifier = Modifier
                         .size(22.dp)
-                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
