@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.remember
 import kotlin.collections.plus
+import com.example.myapplication.MentorProfile
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +30,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
+//data class MentorProfile(
+//    val name: String = "",
+//    val bio: String = "",
+//    val email: String = "",
+//    val role: String = "",
+//    val availability: String = "",
+//    val supportAreas: List<String> = emptyList(),
+//    val verified: Boolean = false
+//)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -37,6 +46,10 @@ fun AppNavigation() {
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
             LoginScreen(navController = navController)
+        }
+
+        composable("signup") {
+            SignUpScreen(navController = navController)
         }
 
         composable("MentorSetup") {
@@ -65,8 +78,9 @@ fun AppNavigation() {
         composable(route = "resources") {
             ResourcesScreen(navController = navController, appState = appState)
         }
-        composable("resource_1") {
-            Resource1(navController = navController)
+        composable("MentorDashboard") {
+            MentorDashboard(navController = navController)
         }
+
     }
 }
