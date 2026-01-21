@@ -14,6 +14,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.remember
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import kotlin.collections.plus
 import com.example.myapplication.MentorProfile
 
@@ -80,6 +82,17 @@ fun AppNavigation() {
         }
         composable("MentorDashboard") {
             MentorDashboard(navController = navController)
+        }
+        composable(
+            route = "chat_screen/{chatId}/{userId}",
+            arguments = listOf(
+                navArgument("chatId") { type = NavType.StringType },
+                navArgument("userId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            ChatScreen(navController, chatId, userId)
         }
 
     }

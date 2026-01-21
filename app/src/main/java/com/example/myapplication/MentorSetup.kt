@@ -1,8 +1,6 @@
 package com.example.myapplication
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import com.google.firebase.firestore.DocumentId
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,11 +24,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 data class MentorProfile(
+    @DocumentId val uid: String = "",
     val name: String = "",
     val bio: String = "",
+    val role: String = "MENTOR",
     val supportAreas: List<String> = emptyList(),
-    val availability: String = "",
-    val isVerified: Boolean = false
+    val availability: List<String> = emptyList(),
+    val currentMentee: String = ""
 )
 
 @Composable
@@ -41,8 +41,7 @@ fun MentorSetupScreen(navController: NavController) {
     val selectedAreas = remember { mutableStateListOf<String>() }
 
     val availabilityOptions = listOf("Weekdays", "Weeknights", "Weekends", "Flexible")
-    var selectedAvailability by remember { mutableStateOf("Weeknights") }
-
+    val selectedAvailability = remember { mutableStateListOf<String>() }
     val scope = rememberCoroutineScope()
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
@@ -94,10 +93,16 @@ fun MentorSetupScreen(navController: NavController) {
         ) {
             availabilityOptions.forEach { option ->
                 FilterChip(
-                    selected = selectedAvailability == option,
-                    onClick = { selectedAvailability = option },
+                    // Check if the list contains this specific option
+                    selected = selectedAvailability.contains(option),
+                    onClick = {
+                        if (selectedAvailability.contains(option)) {
+                            selectedAvailability.remove(option) // Uncheck
+                        } else {
+                            selectedAvailability.add(option) // Check
+                        }
+                    },
                     label = { Text(option) },
-                    // Customizing colors to match your Charcoal theme
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = WellnessCharcoal,
                         selectedLabelColor = Color.White
@@ -111,7 +116,12 @@ fun MentorSetupScreen(navController: NavController) {
         Button(
             onClick = {
                 scope.launch {
-                    val profile = MentorProfile(name, bio, selectedAreas.toList(), selectedAvailability)
+                    val profile = MentorProfile(
+                        name = name,
+                        bio = bio,
+                        supportAreas = selectedAreas.toList(),
+                        availability = selectedAvailability.toList(), // This will now work
+                    )
                     auth.currentUser?.uid?.let { uid ->
                         db.collection("users").document(uid).set(profile, SetOptions.merge()).await()
                         navController.navigate("MentorDashboard")

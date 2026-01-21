@@ -140,6 +140,9 @@ fun LoginScreen(navController: NavController) {
                             } else {
                                 navController.navigate("student_dashboard") {
                                     popUpTo("login") { inclusive = true }
+                                }
+                            }
+                        }
                         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
                         val db = FirebaseFirestore.getInstance()
 

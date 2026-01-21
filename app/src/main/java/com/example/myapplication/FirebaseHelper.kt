@@ -64,5 +64,42 @@ class FirebaseHelper{
             Log.e("FirebaseHelper", "Error saving companion data", e)
         }
     }
+
+    suspend fun matchMentorByFocus(menteeId: String, focus: String): String? {
+        val db = FirebaseFirestore.getInstance()
+        return try {
+            // 1. Find a mentor who has the specific focusArea in their supportAreas list
+            val snapshot = db.collection("users")
+                .whereEqualTo("role", "MENTOR")
+                .whereEqualTo("currentMentee", "")
+                .whereArrayContains("supportAreas", focus) // Matches against the list
+                .limit(1)
+                .get()
+                .await()
+
+            if (snapshot.isEmpty) return null
+
+            val mentorId = snapshot.documents[0].id
+
+            // 2. Perform Atomic Transaction to link them
+            db.runTransaction { transaction ->
+                val mentorRef = db.collection("users").document(mentorId)
+                val menteeRef = db.collection("users").document(menteeId)
+
+                val freshMentor = transaction.get(mentorRef)
+
+                // Re-verify availability to prevent race conditions
+                if (freshMentor.getString("currentMentee") == null) {
+                    transaction.update(mentorRef, "currentMentee", menteeId)
+                    transaction.update(menteeRef, "currentMentor", mentorId)
+                    mentorId
+                } else {
+                    null
+                }
+            }.await()
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
 
