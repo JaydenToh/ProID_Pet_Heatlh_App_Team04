@@ -1,24 +1,21 @@
 package com.example.myapplication
 
 import android.util.Log
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,9 +24,8 @@ fun ChooseCompanionScreen(
     appState: AppState
 ) {
     val selected = appState.selectedCompanion
-
     val scope = rememberCoroutineScope()
-    val repo = remember { CompanionRepository() }
+    val firebaseHelper = remember { FirebaseHelper() }  // Using FirebaseHelper to save companion data
 
     Scaffold(
         topBar = {
@@ -51,27 +47,35 @@ fun ChooseCompanionScreen(
                     onClick = {
                         val pet = selected ?: return@Button
 
-                        // Save selected companion to Firestore
-                        scope.launch {
-                            try {
-                                repo.saveCompanionState(
-                                    selectedCompanion = pet.name,
-                                    level = 1,
-                                    xp = 0,
-                                    xpGoal = 100,
-                                    foodBasics = 0
-                                )
-                                // Log the successful navigation action
-                                Log.d("Navigation", "Navigating to home")
+                        val currentUser = FirebaseAuth.getInstance().currentUser
 
-                                // Navigate to Home and clear back stack up to focus screen
-                                navController.navigate("home") {
-                                    popUpTo("student_dashboard") { inclusive = true }
-                                    launchSingleTop = true
+                        if (currentUser != null) {
+                            val userId = currentUser.uid // Use userId from FirebaseAuth
+
+                            // Save selected companion to Firestore using FirebaseHelper
+                            scope.launch {
+                                try {
+                                    firebaseHelper.saveCompanionState(
+                                        userId = userId,
+                                        selectedCompanion = pet.name,
+                                        level = 1, // Starting level
+                                        xp = 0,    // Starting XP
+                                        xpGoal = 100, // XP goal
+                                        foodBasics = 0 // Food basics for the companion
+                                    )
+
+                                    // Log the successful action
+                                    Log.d("Navigation", "Companion saved and navigating to home")
+
+                                    // Navigate to Home and clear back stack up to the student dashboard
+                                    navController.navigate("home") {
+                                        popUpTo("student_dashboard") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                } catch (e: Exception) {
+                                    // Handle Firestore errors
+                                    Log.e("Firestore", "Error saving companion data", e)
                                 }
-                            } catch (e: Exception) {
-                                // Handle Firestore errors
-                                Log.e("Navigation", "Firestore Save Failed", e)
                             }
                         }
                     },
@@ -118,14 +122,12 @@ fun ChooseCompanionScreen(
     }
 }
 
-
 @Composable
 private fun CompanionRow(
     pet: Companion,
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(14.dp)
 
     val borderColor =
         if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
@@ -139,13 +141,10 @@ private fun CompanionRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(76.dp)
-            .clip(shape)
             .clickable { onClick() },
-        shape = shape,
         color = bgColor,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
-        border = BorderStroke(borderWidth, borderColor)
     ) {
         Row(
             modifier = Modifier
@@ -171,7 +170,6 @@ private fun CompanionRow(
                 Box(
                     modifier = Modifier
                         .size(22.dp)
-                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {

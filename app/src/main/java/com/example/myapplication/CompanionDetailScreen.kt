@@ -64,8 +64,21 @@ fun CompanionDetailScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Companion Details") }) }
-    ) { padding ->
+        topBar = {
+            TopAppBar(
+                title = { Text("Companion Details") },
+                navigationIcon = {
+                    Button(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text("Back")
+                    }
+                }
+            )
+        }
+    )
+ { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -160,4 +173,3 @@ fun CompanionDetailScreen(
         }
     }
 }
-

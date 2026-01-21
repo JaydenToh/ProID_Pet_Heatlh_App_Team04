@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,12 +8,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,8 +27,15 @@ fun SelectFocusScreen(
     navController: NavController,
     appState: AppState
 ) {
-    val selected = appState.selectedFocus
+    val selectedFocus = appState.selectedFocus
     val rows = FocusArea.entries.chunked(2)
+
+    // Firebase
+    val db = FirebaseFirestore.getInstance()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
+    // Coroutine scope for Firebase operations
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Select Your Focus") }) },
@@ -34,11 +48,32 @@ fun SelectFocusScreen(
             ) {
                 Button(
                     onClick = {
-                        navController.navigate("choose_companion") {
-                            launchSingleTop = true
+                        if (selectedFocus.isNotEmpty()) {
+                            // Save focus selections to Firestore under the current user
+                            currentUser?.let {
+                                scope.launch {
+                                    try {
+                                        // Convert selectedFocus to a list of Strings (FocusArea labels)
+                                        val selectedFocusLabels = selectedFocus.map { it.label }
+
+                                        // Save the selected focus areas for the user in Firestore
+                                        db.collection("users")
+                                            .document(it.uid)
+                                            .update("focus", selectedFocusLabels)  // Save as List<String>
+                                            .await() // Ensure the data is saved before navigating
+
+                                        // Navigate to ChooseCompanionScreen
+                                        navController.navigate("choose_companion") {
+                                            launchSingleTop = true
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("Firebase", "Error saving focus data: ", e)
+                                    }
+                                }
+                            }
                         }
                     },
-                    enabled = selected.isNotEmpty(),
+                    enabled = selectedFocus.isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
@@ -87,10 +122,10 @@ fun SelectFocusScreen(
                         row.forEach { area ->
                             FocusCard(
                                 area = area,
-                                selected = selected.contains(area),
+                                selected = selectedFocus.contains(area),
                                 onClick = {
                                     appState.selectedFocus =
-                                        if (selected.contains(area)) selected - area else selected + area
+                                        if (selectedFocus.contains(area)) selectedFocus - area else selectedFocus + area
                                 },
                                 modifier = Modifier
                                     .weight(1f)
@@ -107,6 +142,7 @@ fun SelectFocusScreen(
         }
     }
 }
+
 
 @Composable
 private fun FocusCard(
