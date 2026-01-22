@@ -160,10 +160,8 @@ fun ChatScreen(navController: NavController, chatId: String, currentUserId: Stri
         }
     }
 }
-
 @Composable
 fun ChatBubble(msg: ChatMessage, isCurrentUser: Boolean) {
-    // Large rounding (24.dp) to match your Resource Cards
     val bubbleShape = if (isCurrentUser) {
         RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 24.dp, bottomEnd = 4.dp)
     } else {
@@ -188,9 +186,15 @@ fun ChatBubble(msg: ChatMessage, isCurrentUser: Boolean) {
             )
         }
 
-        msg.timestamp?.let {
+        msg.timestamp?.let { timestamp ->
+            val timeText = remember(timestamp) {
+                val sdf = SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+                sdf.timeZone = java.util.TimeZone.getDefault()
+                sdf.format(timestamp.toDate())
+            }
+
             Text(
-                text = SimpleDateFormat("h:mm a", java.util.Locale.getDefault()).format(it.toDate()),
+                text = timeText,
                 style = MaterialTheme.typography.labelSmall,
                 color = WellnessGrayText,
                 modifier = Modifier.padding(top = 6.dp, start = 8.dp, end = 8.dp)
