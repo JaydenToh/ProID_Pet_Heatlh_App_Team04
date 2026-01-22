@@ -1,6 +1,8 @@
 package com.example.myapplication
 
 
+import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -19,10 +21,16 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.text.intl.Locale
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.ServerTimestamp
+import java.text.SimpleDateFormat
+
 data class ChatMessage(
     val senderId: String = "",
     val messageText: String = "",
-    val timestamp: Long = 0L
+    @ServerTimestamp
+    val timestamp: Timestamp? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,12 +47,15 @@ fun ChatScreen(navController: NavController, chatId: String, currentUserId: Stri
         db.collection("chats").document(chatId).collection("messages")
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, e ->
-                if (e != null) return@addSnapshotListener
+                if (e != null) {
+                    return@addSnapshotListener
+                }
+
                 if (snapshot != null) {
+                    val mappedMessages = snapshot.toObjects(ChatMessage::class.java)
+
                     messages.clear()
-                    snapshot.documents.forEach { doc ->
-                        doc.toObject(ChatMessage::class.java)?.let { messages.add(it) }
-                    }
+                    messages.addAll(mappedMessages)
                 }
             }
     }
@@ -88,11 +99,22 @@ fun ChatScreen(navController: NavController, chatId: String, currentUserId: Stri
                                 val newMessage = ChatMessage(
                                     senderId = currentUserId,
                                     messageText = messageText,
-                                    timestamp = System.currentTimeMillis()
+                                    timestamp = Timestamp.now()
                                 )
+                                val currentUser = FirebaseAuth.getInstance().currentUser
+                                Log.d("ChatDebug", "My UID is: ${currentUser?.uid}")
+                                Log.d("ChatDebug", "Target ChatID is: $chatId")
+                                Log.d("ChatDebug", "Sending to: chats/$chatId/messages")
                                 db.collection("chats").document(chatId)
-                                    .collection("messages").add(newMessage)
-                                messageText = ""
+                                    .collection("messages")
+                                    .add(newMessage)
+                                    .addOnSuccessListener {
+                                        messageText = ""
+                                        Log.d("ChatDebug", "Message added successfully")
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("ChatDebug", "Error adding message", e)
+                                    }
                             }
                         },
                         colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -115,25 +137,38 @@ fun ChatScreen(navController: NavController, chatId: String, currentUserId: Stri
         }
     }
 }
-
 @Composable
 fun ChatBubble(msg: ChatMessage, isCurrentUser: Boolean) {
+    val bubbleShape = if (isCurrentUser) {
+        RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
+    } else {
+        RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
     ) {
         Surface(
-            color = if (isCurrentUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-            shape = RoundedCornerShape(
-                topStart = 16.dp, topEnd = 16.dp,
-                bottomStart = if (isCurrentUser) 16.dp else 0.dp,
-                bottomEnd = if (isCurrentUser) 0.dp else 16.dp
-            )
+            color = if (isCurrentUser) WellnessCharcoal else Color.White,
+            shape = bubbleShape,
+            border = if (isCurrentUser) null else BorderStroke(1.dp, WellnessGrayBorder),
+            shadowElevation = 1.dp
         ) {
             Text(
                 text = msg.messageText,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                color = if (isCurrentUser) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isCurrentUser) Color.White else WellnessCharcoal
+            )
+        }
+
+        msg.timestamp?.let {
+            Text(
+                text = SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(it.toDate()),
+                style = MaterialTheme.typography.labelSmall,
+                color = WellnessSubtext,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
             )
         }
     }
