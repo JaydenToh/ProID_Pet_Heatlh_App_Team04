@@ -1,10 +1,13 @@
 package com.example.myapplication
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.input.VisualTransformation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -40,178 +44,186 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = "WellnessConnect", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = WellnessCharcoal)
-        Text(text = "Peer-to-peer wellness support", fontSize = 14.sp, color = WellnessSubtext)
+    Scaffold(containerColor = WellnessBg) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "WellnessConnect",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold, // Matches "Home" header
+                color = WellnessBlack
+            )
+            Text(
+                text = "Peer-to-peer wellness support",
+                color = WellnessGrayText,
+                style = MaterialTheme.typography.bodyMedium
+            )
 
-        Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-        // Role Selection Cards
-        RoleSelectionCard(
-            title = "I'm a Student",
-            description = "Get matched with a mentor",
-            isSelected = selectedRole == "MENTEE",
-            onClick = { selectedRole = "MENTEE"; errorMessage = null }
-        )
+            // Updated Role Selection with 24.dp corners
+            RoleSelectionCard(
+                title = "I'm a Student",
+                isSelected = selectedRole == "MENTEE",
+                onClick = { selectedRole = "MENTEE" },
+                description = "Student Card"
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            RoleSelectionCard(
+                title = "I'm a Mentor",
+                isSelected = selectedRole == "MENTOR",
+                onClick = { selectedRole = "MENTOR" },
+                description = "Mentor Card"
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        RoleSelectionCard(
-            title = "I'm a Mentor",
-            description = "Support Mentees in need",
-            isSelected = selectedRole == "MENTOR",
-            onClick = { selectedRole = "MENTOR"; isSignUp = false; errorMessage = null }
-        )
+            // Pill-shaped input fields
+            WellnessTextField(value = email, onValueChange = { email = it }, label = "Email")
+            Spacer(modifier = Modifier.height(12.dp))
+            WellnessTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = "Password",
+                isPassword = true
+            )
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Black button style matching "Play with Cat"
+            Button(
+                onClick = {
 
-        WellnessTextField(value = email, onValueChange = { email = it }, label = "Email")
-        Spacer(modifier = Modifier.height(12.dp))
-        WellnessTextField(value = password, onValueChange = { password = it }, label = "Password", isPassword = true)
-
-        // 2. Error Message Display
-        if (errorMessage != null) {
-            Text(text = errorMessage!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-        if (isSuccess) {
-            Surface(
-                color = Color(0xFFE8F5E9), // Soft green background
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Account created! Redirecting to login...",
-                        color = Color(0xFF2E7D32),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-        }
-        Button(
-            onClick = {
-
-                if (email.isEmpty() || password.isEmpty()) {
-                    errorMessage = "Please fill in all fields"
-                    return@Button
-                }
-                if (password.length < 6) {
-                    errorMessage = "Password must be at least 6 characters"
-                    return@Button
-                }
-                isLoading = true
-                errorMessage = null
-
-                scope.launch {
-                    val success = if (isSignUp) {
-                        firebaseHelper.signUp(email, password, "MENTEE")
-                    } else {
-                        firebaseHelper.signIn(email, password)
+                    if (email.isEmpty() || password.isEmpty()) {
+                        errorMessage = "Please fill in all fields"
+                        return@Button
                     }
+                    if (password.length < 6) {
+                        errorMessage = "Password must be at least 6 characters"
+                        return@Button
+                    }
+                    isLoading = true
+                    errorMessage = null
 
-                    if (success) {
-                        if (isSignUp) {
-                            // --- SUCCESS SIGN UP FLOW ---
-                            isSuccess = true
-                            kotlinx.coroutines.delay(2000)
-                            isSuccess = false
-                            isSignUp = false // Redirect back to login view
-                            email = "" // Clear fields for security
-                            password = ""
+                    scope.launch {
+                        val success = if (isSignUp) {
+                            firebaseHelper.signUp(email, password, "MENTEE")
                         } else {
-                            val userId =
-                                FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-                            val db = FirebaseFirestore.getInstance()
+                            firebaseHelper.signIn(email, password)
+                        }
 
-                            try {
-                                Log.d("LoginDebug", "$userId")
-                                // Fetch the document and WAIT for it to finish before moving to the next line
-                                val doc = db.collection("users").document(userId).get().await()
-                                if (doc.exists()) {
-                                    val role = doc.getString("role") ?: "MENTEE"
-                                    val name = doc.getString("name") ?: ""
-                                    val bio = doc.getString("bio") ?: ""
-                                    Log.d("LoginDebug", "Role: $role, Name: '$name', Bio: '$bio'")
-                                    isLoading = false
+                        if (success) {
+                            if (isSignUp) {
+                                // --- SUCCESS SIGN UP FLOW ---
+                                isSuccess = true
+                                kotlinx.coroutines.delay(2000)
+                                isSuccess = false
+                                isSignUp = false // Redirect back to login view
+                                email = "" // Clear fields for security
+                                password = ""
+                            } else {
+                                val userId =
+                                    FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                                val db = FirebaseFirestore.getInstance()
 
-                                    when (role) {
-                                        "MENTOR" -> {
-                                            if (name.isEmpty() || bio.isEmpty()) {
-                                                isLoading = false
-                                                navController.navigate("MentorSetup")
-                                            } else {
-                                                isLoading = false
-                                                navController.navigate("MentorDashboard")
-                                                Log.d("HI", "Role: $role, Name: '$name', Bio: '$bio'")
+                                try {
+                                    Log.d("LoginDebug", "$userId")
+                                    // Fetch the document and WAIT for it to finish before moving to the next line
+                                    val doc = db.collection("users").document(userId).get().await()
+                                    if (doc.exists()) {
+                                        val role = doc.getString("role") ?: "MENTEE"
+                                        val name = doc.getString("name") ?: ""
+                                        val bio = doc.getString("bio") ?: ""
+                                        Log.d(
+                                            "LoginDebug",
+                                            "Role: $role, Name: '$name', Bio: '$bio'"
+                                        )
+                                        isLoading = false
+
+                                        when (role) {
+                                            "MENTOR" -> {
+                                                if (name.isEmpty() || bio.isEmpty()) {
+                                                    isLoading = false
+                                                    navController.navigate("MentorSetup")
+                                                } else {
+                                                    isLoading = false
+                                                    navController.navigate("MentorDashboard")
+                                                    Log.d(
+                                                        "HI",
+                                                        "Role: $role, Name: '$name', Bio: '$bio'"
+                                                    )
+                                                }
+                                            }
+
+                                            "MENTEE" -> {
+                                                navController.navigate("student_dashboard")
                                             }
                                         }
-
-                                        "MENTEE" -> {
-                                            navController.navigate("student_dashboard")
-                                        }
+                                    } else {
+                                        Log.e(
+                                            "LoginDebug",
+                                            "ERROR: Document does not exist in Firestore for this UID"
+                                        )
+                                        navController.navigate("MentorSetup")
                                     }
-                                } else {
-                                    Log.e(
-                                        "LoginDebug",
-                                        "ERROR: Document does not exist in Firestore for this UID"
-                                    )
-                                    navController.navigate("MentorSetup")
+                                } catch (e: Exception) {
+                                    isLoading = false
+                                    errorMessage = "Error fetching user data: ${e.message}"
                                 }
-                            } catch (e: Exception) {
-                                isLoading = false
-                                errorMessage = "Error fetching user data: ${e.message}"
                             }
                         }
                     }
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = WellnessCharcoal),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                val buttonText = if (selectedRole == "MENTOR") "Continue"
-                else if (isSignUp) "Create Account"
-                else "Sign In"
-                Text(buttonText, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-        }
-
-        // Toggle Sign Up
-        Box(modifier = Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
-            if (selectedRole == "MENTEE") {
-                TextButton(onClick = {
-                    // Redirect to the separate SignUpScreen composable
-                    navController.navigate("signup")
-                    errorMessage = null
-                }) {
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = WellnessCharcoal),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    val buttonText = if (selectedRole == "MENTOR") "Continue"
+                    else if (isSignUp) "Create Account"
+                    else "Sign In"
                     Text(
-                        text = "New student? Sign up here",
-                        color = WellnessCharcoal,
-                        fontSize = 13.sp
+                        buttonText,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
                     )
                 }
-            } else {
-                Text(text = "New mentors will be asked to complete their profile", fontSize = 12.sp, color = WellnessSubtext)
+            }
+
+            // Toggle Sign Up
+            Box(
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (selectedRole == "MENTEE") {
+                    TextButton(onClick = {
+                        // Redirect to the separate SignUpScreen composable
+                        navController.navigate("signup")
+                        errorMessage = null
+                    }) {
+                        Text(
+                            text = "New student? Sign up here",
+                            color = WellnessCharcoal,
+                            fontSize = 13.sp
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "New mentors will be asked to complete their profile",
+                        fontSize = 12.sp,
+                        color = WellnessSubtext
+                    )
+                }
             }
         }
     }
@@ -253,7 +265,7 @@ fun WellnessTextField(value: String, onValueChange: (String) -> Unit, label: Str
         )
     )
 }
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignUpScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
@@ -263,46 +275,83 @@ fun SignUpScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Student Registration", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = WellnessCharcoal)
-        Text("Create an account to find a mentor", fontSize = 14.sp, color = WellnessSubtext)
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        WellnessTextField(email, { email = it }, "Student Email")
-        Spacer(modifier = Modifier.height(12.dp))
-        WellnessTextField(password, { password = it }, "Password (6+ characters)", isPassword = true)
-
-        if (errorMessage != null) {
-            Text(errorMessage!!, color = Color.Red, fontSize = 12.sp)
+    Scaffold(
+        containerColor = WellnessBg,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Registration", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = WellnessBlack
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = WellnessBg)
+            )
         }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
+            // Student-specific registration card with shadow
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = WellnessWhite,
+                border = BorderStroke(2.dp, WellnessBlack),
+                modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp))
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        "Start Journey",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text("Enter details to join the community", color = WellnessGrayText)
 
-        Button(
-            onClick = {
-                isLoading = true
-                scope.launch {
-                    // Force the role to "MENTEE"
-                    val success = firebaseHelper.signUp(email, password, "MENTEE")
-                    isLoading = false
-                    if (success) {
-                        navController.navigate("login") { popUpTo("signup") { inclusive = true } }
-                    } else {
-                        errorMessage = "Registration failed."
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    WellnessTextField(email, { email = it }, "Student Email")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    WellnessTextField(password, { password = it }, "Password", isPassword = true)
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Button(
+                        onClick = {
+                            isLoading = true
+                            scope.launch {
+                                // Force the role to "MENTEE"
+                                val success = firebaseHelper.signUp(email, password, "MENTEE")
+                                isLoading = false
+                                if (success) {
+                                    navController.navigate("login") {
+                                        popUpTo("signup") {
+                                            inclusive = true
+                                        }
+                                    }
+                                } else {
+                                    errorMessage = "Registration failed."
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WellnessCharcoal),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) CircularProgressIndicator(color = Color.White) else Text("Sign Up")
                     }
                 }
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = WellnessCharcoal),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading
-        ) {
-            if (isLoading) CircularProgressIndicator(color = Color.White) else Text("Sign Up")
+            }
         }
     }
 }

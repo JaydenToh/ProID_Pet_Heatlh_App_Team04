@@ -8,144 +8,136 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.FirebaseFirestore
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 
+val WellnessBg = Color(0xFFF8F9FA) // Light grayish background from the "Resources" screen
+val WellnessWhite = Color(0xFFFFFFFF)
+val WellnessBlack = Color(0xFF1A1A1A) // Primary text and button color
+val WellnessGrayText = Color(0xFF757575) // Subtext/Description color
+val WellnessBorder = Color(0xFFEEEEEE) // Light border for cards
+
+data class StudentProfile(
+    @DocumentId val uid: String = "",
+    val email: String = "",
+    val role: String = "MENTEE",
+    val focus: List<String> = emptyList(),
+    val currentMentor: String = ""
+)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-
 fun MentorDashboard(navController: NavController) {
-    val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
 
-    // State to hold the mentor profile data
     var profile by remember { mutableStateOf<MentorProfile?>(null) }
+    var assignedStudent by remember { mutableStateOf<StudentProfile?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    // Add this state to hold the student's profile
-    var assignedStudent by remember { mutableStateOf<MentorProfile?>(null) }
 
     LaunchedEffect(Unit) {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            isLoading = false
-            return@LaunchedEffect
-        }
-
+        val uid = auth.currentUser?.uid ?: return@LaunchedEffect
         db.collection("users").document(uid).get()
-            .addOnSuccessListener { document ->
-                val mentor = document.toObject(MentorProfile::class.java)
+            .addOnSuccessListener { doc ->
+                val mentor = doc.toObject(MentorProfile::class.java)
                 profile = mentor
 
-                val menteeId = mentor?.currentMentee
-                if (!menteeId.isNullOrEmpty()) {
-                    Log.d("MENTORDEBUG","HIII ${menteeId}")
+                mentor?.currentMentee?.let { menteeId ->
                     db.collection("users").document(menteeId).get()
-                        .addOnSuccessListener { studentDoc ->
-                            assignedStudent = studentDoc.toObject(MentorProfile::class.java)?.copy(uid = menteeId)
-                            Log.d("MENTORDEBUG","${menteeId}")
-                            Log.d("MENTORDEBUG","HII ${assignedStudent}")
+                        .addOnSuccessListener { sDoc ->
+                            assignedStudent = sDoc.toObject(StudentProfile::class.java)?.copy(uid = menteeId)
                             isLoading = false
                         }
-                        .addOnFailureListener { e->
-                            isLoading = false
-                            Log.e("MENTORDEBUG", "FETCH FAILED: ${e.message}", e)
-                        }
-                } else {
-                    isLoading = false // No student assigned, stop loading
-                }
-            }
-            .addOnFailureListener {
-                isLoading = false // Database error, stop loading
+                } ?: run { isLoading = false }
             }
     }
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+
+    Scaffold(
+        containerColor = WellnessBg,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text("Mentor Dashboard",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold)
+                },
+                actions = {
+                    IconButton(onClick = {
+                        auth.signOut()
+                        navController.navigate("login") { popUpTo(0) }
+                    }) {
+                        Icon(Icons.Default.Logout, contentDescription = "Logout", tint = WellnessBlack)
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = WellnessBg)
+            )
         }
-    } else {
-        Scaffold(
-            containerColor = Color(0xFFFBFBFE),
-            topBar = {
-                // Using standard TopAppBar for better alignment control
-                TopAppBar(
-                    title = {
-                        Column(modifier = Modifier.padding(start = 4.dp)) { // Slight nudge for alignment
-                            Text(
-                                "Welcome back,",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = WellnessSubtext
-                            )
-                            Text(
-                                profile?.name ?: "Mentor",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = WellnessCharcoal
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                auth.signOut()
-                                navController.navigate("login") {
-                                    // Clears the entire backstack so user can't "Go Back" into the dashboard
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            },
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Logout, // Or Icons.Default.ExitToApp
-                                contentDescription = "Logout",
-                                tint = WellnessCharcoal
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
-                )
+    ) { padding ->
+        if (isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = WellnessBlack)
             }
-        ) { padding ->
+        } else {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 24.dp), // Matched with LoginScreen padding
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                contentPadding = PaddingValues(bottom = 32.dp)
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 item {
-                    MentorProfileHeader(profile)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF0F0F0),
+                            modifier = Modifier.size(80.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Person, null, modifier = Modifier.size(40.dp), tint = WellnessGrayText)
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = profile?.name ?: "Mentor",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = WellnessBlack
+                        )
+                        Text(
+                            text = profile?.bio ?:"Professional Mentor",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = WellnessGrayText
+                        )
+                    }
                 }
 
                 item {
                     Text(
-                        "Current Mentees",
+                        "My Mentees",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = WellnessCharcoal,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
                 }
 
@@ -161,158 +153,136 @@ fun MentorDashboard(navController: NavController) {
                             }
                         )
                     } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFF0F0F0)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Outlined.People,
-                                    null,
-                                    modifier = Modifier.size(40.dp),
-                                    tint = Color.LightGray
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("No Students Yet", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "You haven't been assigned any\nstudents. An admin will assign\nstudents to you.",
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                color = Color.Gray,
-                                lineHeight = 20.sp
-                            )
-                        }
+                        EmptyStateCard()
                     }
                 }
             }
         }
     }
 }
+
 @Composable
-fun MentorProfileHeader(profile: MentorProfile?) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, WellnessGrayBorder)
+fun ModernStudentCard(student: StudentProfile, onChatClick: () -> Unit) {
+    MenteeCard(student, onChatClick)
+}
+@Composable
+fun MenteeCard(student: StudentProfile, onChatClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 4.dp) // Space for shadow to breathe
+            .shadow(
+                elevation = 10.dp, // Creates the soft diffused bottom shadow
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = Color.Black.copy(alpha = 0.1f),
+                spotColor = Color.Black.copy(alpha = 0.25f)
+            )
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Circular Avatar in Charcoal/Gray
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .background(Color(0xFFF5F5F5), CircleShape),
-                    contentAlignment = Alignment.Center
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = WellnessWhite,
+            border = BorderStroke(2.dp, WellnessBlack) // The bold black border from your image
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Surface(
+                    color = Color(0xFFF5F5F5),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        profile?.name?.take(1) ?: "?",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = WellnessCharcoal,
+                        text = "Active Mentee 1",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = WellnessBlack,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-                Column {
-                    Surface(
-                        color = Color(0xFFF5F5F5),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            "Pending Verification",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = WellnessSubtext
-                        )
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        profile?.name ?: "Loading...",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = WellnessCharcoal
-                    )
-                }
-            }
+                Text(
+                    text = "Focus Areas",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = WellnessGrayText,
+                )
 
-            Spacer(Modifier.height(16.dp))
-            Text(
-                profile?.bio ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = WellnessSubtext,
-                lineHeight = 22.sp
-            )
+                Spacer(Modifier.height(12.dp))
 
-            Spacer(Modifier.height(20.dp))
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                profile?.supportAreas?.forEach { area ->
-                    Surface(
-                        color = Color.White,
-                        border = BorderStroke(1.dp, WellnessGrayBorder),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            area,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = WellnessCharcoal
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    student.focus.take(3).forEach { area ->
+                        Surface(
+                            color = Color(0xFFF0F0F0),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, WellnessBorder)
+                        ) {
+                            Text(
+                                text = area,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = WellnessBlack,
+                            )
+                        }
                     }
                 }
+
+                Spacer(Modifier.height(24.dp))
+
+                // Primary Black Button
+                Button(
+                    onClick = onChatClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = WellnessBlack),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Chat, null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Text("Open Chat", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "Keep in touch with your mentee to help them progress through their wellness journey.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = WellnessGrayText,
+                    lineHeight = 16.sp
+                )
             }
         }
     }
 }
-
 @Composable
-fun ModernStudentCard(student: MentorProfile, onChatClick: () -> Unit) {
+fun EmptyStateCard() {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        border = BorderStroke(1.dp, WellnessGrayBorder)
+        shape = RoundedCornerShape(24.dp),
+        color = WellnessWhite,
+        border = BorderStroke(1.dp, WellnessBorder),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier.size(48.dp).background(Color(0xFFF5F5F5), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(student.name.take(1), fontWeight = FontWeight.Bold, color = WellnessCharcoal)
-            }
-
-            Spacer(Modifier.width(16.dp))
-
-            Column(Modifier.weight(1f)) {
-                Text(student.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = WellnessCharcoal)
-                Text("Assigned Mentee", style = MaterialTheme.typography.labelSmall, color = WellnessSubtext)
-            }
-
-            IconButton(
-                onClick = onChatClick,
-                modifier = Modifier.background(WellnessCharcoal, RoundedCornerShape(12.dp))
-            ) {
-                Icon(
-                    Icons.Default.Chat,
-                    contentDescription = "Chat",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            Text(
+                "No Assigned Mentees",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "You haven't been assigned any students yet. Please check back later.",
+                textAlign = TextAlign.Center,
+                color = WellnessGrayText,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
