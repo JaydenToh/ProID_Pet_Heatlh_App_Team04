@@ -1,4 +1,5 @@
 package com.example.myapplication
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -134,47 +135,49 @@ fun LoginScreen(navController: NavController) {
                             email = "" // Clear fields for security
                             password = ""
                         } else {
-                            // --- SUCCESS LOGIN FLOW ---
-                            if (selectedRole == "MENTOR") {
-                                navController.navigate("MentorSetup")
-                            } else {
-                                navController.navigate("student_dashboard") {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            }
-                        }
-                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-                        val db = FirebaseFirestore.getInstance()
+                            val userId =
+                                FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                            val db = FirebaseFirestore.getInstance()
 
-                        try {
-                            // Fetch the document and WAIT for it to finish before moving to the next line
-                            val doc = db.collection("users").document(userId).get().await()
+                            try {
+                                Log.d("LoginDebug", "$userId")
+                                // Fetch the document and WAIT for it to finish before moving to the next line
+                                val doc = db.collection("users").document(userId).get().await()
+                                if (doc.exists()) {
+                                    val role = doc.getString("role") ?: "MENTEE"
+                                    val name = doc.getString("name") ?: ""
+                                    val bio = doc.getString("bio") ?: ""
+                                    Log.d("LoginDebug", "Role: $role, Name: '$name', Bio: '$bio'")
+                                    isLoading = false
 
-                            val role = doc.getString("role") ?: "MENTEE"
-                            val name = doc.getString("name") ?: ""
-                            val bio = doc.getString("bio") ?: ""
+                                    when (role) {
+                                        "MENTOR" -> {
+                                            if (name.isEmpty() || bio.isEmpty()) {
+                                                isLoading = false
+                                                navController.navigate("MentorSetup")
+                                            } else {
+                                                isLoading = false
+                                                navController.navigate("MentorDashboard")
+                                                Log.d("HI", "Role: $role, Name: '$name', Bio: '$bio'")
+                                            }
+                                        }
 
-                            isLoading = false // Move this here so it stays loading until navigation
-
-                            when (role) {
-                                "MENTOR" -> {
-                                    if (name.isEmpty() || bio.isEmpty()) {
-                                        navController.navigate("MentorSetup")
-                                    } else {
-                                        navController.navigate("MentorDashboard")
+                                        "MENTEE" -> {
+                                            navController.navigate("student_dashboard")
+                                        }
                                     }
+                                } else {
+                                    Log.e(
+                                        "LoginDebug",
+                                        "ERROR: Document does not exist in Firestore for this UID"
+                                    )
+                                    navController.navigate("MentorSetup")
                                 }
-                                "MENTEE" -> {
-                                    navController.navigate("student_dashboard")
-                                }
+                            } catch (e: Exception) {
+                                isLoading = false
+                                errorMessage = "Error fetching user data: ${e.message}"
                             }
-                        } catch (e: Exception) {
-                            isLoading = false
-                            errorMessage = "Error fetching user data: ${e.message}"
                         }
-                    } else {
-                        isLoading = false
-                        errorMessage = if (isSignUp) "Sign up failed." else "Invalid credentials."
                     }
                 }
             },

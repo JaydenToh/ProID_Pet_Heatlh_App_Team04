@@ -332,7 +332,7 @@ fun MentorDetailCard(
                 }
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Chat, // Replaced AddIcCall with Chat for clarity
+                    imageVector = Icons.Filled.Chat,
                     contentDescription = "Chat with Mentor",
                     tint = MaterialTheme.colorScheme.primary
                 )
