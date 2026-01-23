@@ -62,6 +62,7 @@ fun ChooseCompanionScreen(
                     containerColor = LightBackground
                 )
             )
+
         }
     ) { padding ->
         Column(
