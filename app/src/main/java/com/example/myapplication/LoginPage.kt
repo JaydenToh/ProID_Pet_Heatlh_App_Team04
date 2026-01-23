@@ -1,4 +1,5 @@
 package com.example.myapplication
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -140,6 +141,9 @@ fun LoginScreen(navController: NavController) {
                             } else {
                                 navController.navigate("student_dashboard") {
                                     popUpTo("login") { inclusive = true }
+                                }
+                            }
+                        }
                         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
                         val db = FirebaseFirestore.getInstance()
 

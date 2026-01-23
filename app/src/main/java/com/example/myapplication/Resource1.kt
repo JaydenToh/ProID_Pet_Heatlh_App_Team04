@@ -1,16 +1,23 @@
 package com.example.myapplication
 
+import android.util.Log
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,7 +29,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
-// Data model for our quiz questions
+// --- Design System Colors ---
+private val LightBackground = Color(0xFFF5F5F7)
+private val CardWhite = Color(0xFFFFFFFF)
+private val DarkButton = Color(0xFF1A1A1A)
+private val TextPrimary = Color(0xFF1A1A1A)
+private val TextSecondary = Color(0xFF757575)
+private val BorderLight = Color(0xFFE0E0E0)
+
+// Data Model
 data class Question(
     val text: String,
     val options: List<String>,
@@ -36,44 +51,67 @@ enum class ScreenState {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Resource1(navController: NavController) {
-    // --- State Management ---
     var currentScreen by remember { mutableStateOf(ScreenState.INFO) }
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
     var selectedOption by remember { mutableStateOf<Int?>(null) }
     var isPlayingBreathing by remember { mutableStateOf(false) }
 
-    val questions = listOf(
-        Question("How many seconds should you inhale?", listOf("2 seconds", "4 seconds", "10 seconds"), 1),
-        Question("What is the main goal of deep breathing?", listOf("Run faster", "Calm the nervous system", "Stay awake"), 1),
-        Question("You should breathe deeply into your...", listOf("Shoulders", "Chest", "Belly/Diaphragm"), 2),
-        Question("Exhaling slowly helps to...", listOf("Increase heart rate", "Lower stress", "Improve vision"), 1),
-        Question("When is the best time to practice?", listOf("Only when angry", "Anytime", "Never"), 1)
-    )
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid
+
+    val questions = remember {
+        listOf(
+            Question("How many seconds should you inhale?", listOf("2 seconds", "4 seconds", "10 seconds"), 1),
+            Question("What is the main goal of deep breathing?", listOf("Run faster", "Calm the nervous system", "Stay awake"), 1),
+            Question("You should breathe deeply into your...", listOf("Shoulders", "Chest", "Belly/Diaphragm"), 2),
+            Question("Exhaling slowly helps to...", listOf("Increase heart rate", "Lower stress", "Improve vision"), 1),
+            Question("When is the best time to practice?", listOf("Only when angry", "Anytime", "Never"), 1)
+        )
+    }
 
     LaunchedEffect(isPlayingBreathing) {
         if (isPlayingBreathing) {
-            delay(3000) // Simulate breathing session
+            delay(3000)
             isPlayingBreathing = false
         }
     }
 
     Scaffold(
+        containerColor = LightBackground,
         topBar = {
-            TopAppBar(
-                title = { Text("Breathing Reset", style = MaterialTheme.typography.titleMedium) },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "Breathing Reset",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (currentScreen == ScreenState.INFO) navController.popBackStack()
                         else currentScreen = ScreenState.INFO
                     }) {
-                        Text("Back", color = Color(0xFFFFA726), fontWeight = FontWeight.Bold)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = TextPrimary
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = LightBackground
+                )
             )
         }
     ) { padding ->
-        // Use Crossfade for smooth transitions between info and quiz
-        Crossfade(targetState = currentScreen, label = "ScreenTransition", modifier = Modifier.padding(padding)) { screen ->
+        Crossfade(
+            targetState = currentScreen,
+            label = "ScreenTransition",
+            modifier = Modifier.padding(padding)
+        ) { screen ->
             when (screen) {
                 ScreenState.INFO -> {
                     InfoContent(
@@ -101,7 +139,9 @@ fun Resource1(navController: NavController) {
                 }
                 ScreenState.COMPLETED -> {
                     CompletionContent(onComplete = {
-                        // Logic to add points would go here
+                        if (userId != null) {
+                            updateUserXP(userId, 15)
+                        }
                         navController.popBackStack()
                     })
                 }
@@ -113,33 +153,120 @@ fun Resource1(navController: NavController) {
 @Composable
 fun InfoContent(isPlaying: Boolean, onPetClick: () -> Unit, onStartQuiz: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ResourcePetArea(isPlaying = isPlaying, onPetClick = onPetClick)
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Hero Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .clickable { onPetClick() },
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isPlaying) "🌬️" else "▶️",
+                    fontSize = 72.sp
+                )
+                if (!isPlaying) {
+                    Text(
+                        text = "Tap to Start Exercise",
+                        style = MaterialTheme.typography.labelLarge.copy(color = TextSecondary),
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
+                    )
+                } else {
+                    Text(
+                        text = "Breathe In...",
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Text(
+            text = "About Breathing Reset",
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                fontSize = 24.sp
+            ),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = "Controlled breathing helps reduce cortisol levels and physically signals your brain to relax.",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = TextSecondary,
+                lineHeight = 24.sp,
+                fontSize = 16.sp
+            )
+        )
 
         Spacer(Modifier.height(24.dp))
 
-        Text("About Breathing Reset", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(
-            "Controlled breathing helps reduce cortisol levels and physically signals your brain to relax. Practice this for 3 minutes before starting the quiz.",
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(vertical = 12.dp)
-        )
+        // Metadata Pills
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                color = CardWhite,
+                shape = RoundedCornerShape(50),
+                border = BorderStroke(1.dp, BorderLight),
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Text(
+                    text = "⏱ 3 min",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+            Surface(
+                color = CardWhite,
+                shape = RoundedCornerShape(50),
+                border = BorderStroke(1.dp, BorderLight)
+            ) {
+                Text(
+                    text = "⚡ +15 XP",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Duration: 3 mins", color = Color.Gray)
-            Text("XP: +15", color = Color.Gray)
+        Spacer(Modifier.height(32.dp))
+
+        Button(
+            onClick = onStartQuiz,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkButton),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text("Start Quiz", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
         }
 
         Spacer(modifier = Modifier.weight(1f))
-
-        ResourceActionButton(
-            text = "Start Quiz",
-            subtext = "Test your knowledge",
-            isActive = true,
-            onClick = onStartQuiz
-        )
     }
 }
 
@@ -152,53 +279,118 @@ fun QuizContent(
     onOptionSelected: (Int) -> Unit,
     onNext: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        // Progress Bar
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+        // --- 1. Progress Bar (Pinned Top) ---
+        val progress by animateFloatAsState(targetValue = (currentIndex + 1).toFloat() / totalQuestions)
         LinearProgressIndicator(
-            progress = { (currentIndex + 1).toFloat() / totalQuestions },
-            modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.LightGray, RoundedCornerShape(4.dp)),
-            color = Color(0xFFFFA726)
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            color = DarkButton,
+            trackColor = Color.White
         )
-        Text("Question ${currentIndex + 1} of $totalQuestions", modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall)
 
-        Spacer(Modifier.height(32.dp))
+        // --- 2. CENTERED BLOCK (Shifted Upwards) ---
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Top Spacer (Smaller weight pulls content UP)
+            Spacer(modifier = Modifier.weight(0.5f))
 
-        Text(text = question.text, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+            // Question Count
+            Text(
+                text = "Question ${currentIndex + 1} of $totalQuestions",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = TextSecondary
+                )
+            )
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
-        question.options.forEachIndexed { index, option ->
-            val isSelected = selectedOption == index
-            Box(
+            // The Question
+            Text(
+                text = question.text,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = TextPrimary,
+                    fontSize = 26.sp
+                ),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(32.dp))
+
+            // The Options
+            question.options.forEachIndexed { index, option ->
+                val isSelected = selectedOption == index
+                val borderColor = if (isSelected) DarkButton else BorderLight
+                val borderWidth = if (isSelected) 2.5.dp else 1.dp
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .clickable { onOptionSelected(index) },
+                    shape = RoundedCornerShape(20.dp),
+                    color = CardWhite,
+                    border = BorderStroke(borderWidth, borderColor)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = TextPrimary,
+                                fontSize = 18.sp
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = DarkButton,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            // The Button
+            Button(
+                onClick = onNext,
+                enabled = selectedOption != null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .border(
-                        width = 2.dp,
-                        color = if (isSelected) Color(0xFFFFA726) else Color(0xFFE0E0E0),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .background(
-                        if (isSelected) Color(0xFFFFF3E0) else Color.Transparent,
-                        RoundedCornerShape(12.dp)
-                    )
-                    .clickable { onOptionSelected(index) }
-                    .padding(16.dp)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DarkButton,
+                    disabledContainerColor = Color.LightGray
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Text(option, style = MaterialTheme.typography.bodyLarge)
+                Text("Next", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             }
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = onNext,
-            enabled = selectedOption != null,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726)),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Next Question", fontSize = 18.sp)
+            // Bottom Spacer (Larger weight pushes content UP)
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -206,81 +398,91 @@ fun QuizContent(
 @Composable
 fun CompletionContent(onComplete: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("🎉", fontSize = 60.sp)
-        Text("Excellent Work!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("You've completed the Breathing Reset quiz and earned points for your health journey.",
-            textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+        Text("🎉", fontSize = 80.sp)
+        Spacer(Modifier.height(24.dp))
 
+        Text(
+            text = "Excellent Work!",
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.ExtraBold,
+                color = TextPrimary,
+                fontSize = 28.sp
+            ),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = "You've completed the Breathing Reset quiz and earned points for your health journey.",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = TextSecondary,
+                lineHeight = 26.sp,
+                fontSize = 18.sp
+            )
+        )
+
+        Spacer(Modifier.height(40.dp))
+
+        // XP Reward Card
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
-            modifier = Modifier.padding(24.dp)
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
+            border = BorderStroke(1.dp, BorderLight),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("+15 XP Added to Account", modifier = Modifier.padding(16.dp), color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+            Column(
+                modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "+15 XP",
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Black,
+                        color = DarkButton,
+                        fontSize = 40.sp
+                    )
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Added to Account",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextSecondary
+                )
+            }
         }
+
+        Spacer(Modifier.height(48.dp))
 
         Button(
             onClick = onComplete,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726)),
-            shape = RoundedCornerShape(12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkButton),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Text("Complete & Exit", fontSize = 18.sp)
+            Text("Complete & Exit", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp))
         }
     }
 }
 
-// Reuse your components with minor updates for the layout
-@Composable
-fun ResourcePetArea(isPlaying: Boolean, onPetClick: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxWidth().height(200.dp)
-            .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp))
-            .clickable { onPetClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(if (isPlaying) "🌬️ Breathing..." else "Tap to Start Exercise", style = MaterialTheme.typography.titleLarge)
-    }
-}
-
-fun updateUserXP(points: Long) {
+fun updateUserXP(userId: String, points: Long) {
     val db = FirebaseFirestore.getInstance()
-    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    val docRef = db.collection("users")
+        .document(userId)
+        .collection("companion")
+        .document("CAT")
 
-    if (userId != null) {
-        // Path: users/{userId}/companion/CAT
-        val docRef = db.collection("users")
-            .document(userId)
-            .collection("companion")
-            .document("CAT")
-
-        // Atomically increment the 'xp' field
-        docRef.update("xp", FieldValue.increment(points))
-            .addOnSuccessListener {
-                println("XP successfully updated!")
-            }
-            .addOnFailureListener { e ->
-                println("Error updating XP: $e")
-            }
-    }
-}
-
-@Composable
-fun ResourceActionButton(text: String, subtext: String, isActive: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        enabled = isActive,
-        modifier = Modifier.fillMaxWidth().height(72.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFFFFA726),
-        shadowElevation = 4.dp
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(text, style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
-            Text(subtext, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(0.8f))
-        }
-    }
+    // Assuming you want to give wallet XP for task completion
+    docRef.update("xp", FieldValue.increment(points))
+        .addOnSuccessListener { Log.d("Firebase", "XP updated successfully!") }
+        .addOnFailureListener { e -> Log.e("Firebase", "Error updating XP", e) }
 }

@@ -5,23 +5,36 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-@OptIn(ExperimentalMaterial3Api::class)
+// --- Design System Colors ---
+private val LightBackground = Color(0xFFF5F5F7)
+private val CardWhite = Color(0xFFFFFFFF)
+private val DarkButton = Color(0xFF1A1A1A)
+private val TextPrimary = Color(0xFF1A1A1A)
+private val TextSecondary = Color(0xFF757575)
+private val BorderUnselected = Color(0xFFE0E0E0) // Light grey for definition
+
 @Composable
 fun SelectFocusScreen(
     navController: NavController,
@@ -30,89 +43,52 @@ fun SelectFocusScreen(
     val selectedFocus = appState.selectedFocus
     val rows = FocusArea.entries.chunked(2)
 
-    // Firebase
     val db = FirebaseFirestore.getInstance()
     val currentUser = FirebaseAuth.getInstance().currentUser
-
-    // Coroutine scope for Firebase operations
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Select Your Focus") }) },
-        bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-                Button(
-                    onClick = {
-                        if (selectedFocus.isNotEmpty()) {
-                            // Save focus selections to Firestore under the current user
-                            currentUser?.let {
-                                scope.launch {
-                                    try {
-                                        // Convert selectedFocus to a list of Strings (FocusArea labels)
-                                        val selectedFocusLabels = selectedFocus.map { it.label }
-
-                                        // Save the selected focus areas for the user in Firestore
-                                        db.collection("users")
-                                            .document(it.uid)
-                                            .update("focus", selectedFocusLabels)  // Save as List<String>
-                                            .await() // Ensure the data is saved before navigating
-
-                                        // Navigate to ChooseCompanionScreen
-                                        navController.navigate("choose_companion") {
-                                            launchSingleTop = true
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.e("Firebase", "Error saving focus data: ", e)
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    enabled = selectedFocus.isNotEmpty(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("Continue")
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    text = "You can select multiple.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        containerColor = LightBackground
+        // Removed bottomBar so the button can move to the center
     ) { padding ->
+        // Main Centered Container
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()) // Allow scrolling if screen is short
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(8.dp))
+            // 1. Top Spacer: Pushes everything down to the center
+            Spacer(modifier = Modifier.weight(1f))
 
+            // 2. Header Section
+            Text(
+                text = "Select Your Focus",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 28.sp,
+                    color = TextPrimary
+                ),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Choose the wellness areas you'd like to focus on.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 16.sp,
+                    color = TextSecondary
+                ),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // 3. The Grid Section
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.SpaceEvenly
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 rows.forEach { row ->
                     Row(
@@ -120,66 +96,112 @@ fun SelectFocusScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         row.forEach { area ->
-                            FocusCard(
+                            DefinedFocusCard(
                                 area = area,
                                 selected = selectedFocus.contains(area),
                                 onClick = {
                                     appState.selectedFocus =
-                                        if (selectedFocus.contains(area)) selectedFocus - area else selectedFocus + area
+                                        if (selectedFocus.contains(area)) selectedFocus - area
+                                        else selectedFocus + area
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(96.dp)
+                                    .height(125.dp) // Fixed generous height
                             )
                         }
-
                         if (row.size == 1) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 4. Button Section (Now centered below the grid)
+            Button(
+                onClick = {
+                    if (selectedFocus.isNotEmpty()) {
+                        currentUser?.let {
+                            scope.launch {
+                                try {
+                                    val selectedFocusLabels = selectedFocus.map { it.label }
+                                    db.collection("users")
+                                        .document(it.uid)
+                                        .update("focus", selectedFocusLabels)
+                                        .await()
+                                    navController.navigate("choose_companion") {
+                                        launchSingleTop = true
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("Firebase", "Error saving focus data: ", e)
+                                }
+                            }
+                        }
+                    }
+                },
+                enabled = selectedFocus.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DarkButton,
+                    contentColor = Color.White,
+                    disabledContainerColor = Color.LightGray
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .shadow(6.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.1f))
+            ) {
+                Text(
+                    text = "Continue",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "You can select multiple",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary
+            )
+
+            // 5. Bottom Spacer: Balances the top spacer
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Extra padding for bottom safety
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
-
 @Composable
-private fun FocusCard(
+private fun DefinedFocusCard(
     area: FocusArea,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    // VISUAL DEFINITION LOGIC:
+    // Selected: Bold Dark Border
+    // Unselected: Thin Light Grey Border (defines the box better)
+    val borderColor = if (selected) DarkButton else BorderUnselected
+    val borderWidth = if (selected) 2.5.dp else 1.dp
 
-    val border = if (selected) 2.dp else 1.dp
-    val borderColor =
-        if (selected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.outline
+    // Shadows: Slightly deeper shadow for better separation
+    val elevation = if (selected) 6.dp else 2.dp
 
-    val bgColor =
-        if (selected) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surface
-
-    val textColor =
-        if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onSurface
-
-    Surface(
+    Card(
         modifier = modifier
-            .clip(shape)
+            .clip(RoundedCornerShape(20.dp))
             .clickable { onClick() },
-        shape = shape,
-        color = bgColor,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        border = BorderStroke(border, borderColor)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        border = BorderStroke(borderWidth, borderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp)
+            modifier = Modifier.fillMaxSize()
         ) {
             Column(
                 modifier = Modifier.align(Alignment.Center),
@@ -188,30 +210,34 @@ private fun FocusCard(
             ) {
                 Text(
                     text = area.emoji,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = textColor
+                    fontSize = 38.sp
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = area.label,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = textColor
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = TextPrimary
+                    )
                 )
             }
 
+            // Checkmark Overlay
             if (selected) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
+                        .padding(10.dp)
+                        .size(24.dp)
+                        .background(DarkButton, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "✓",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onPrimary
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }

@@ -1,16 +1,19 @@
 package com.example.myapplication
 
+// --- 1. Define the Enum here ---
 enum class ResourceType(val label: String) {
-    QUIZ("Quiz"),
-    TASK("Task")
+    QUIZ(label = "Quiz"),
+    TASK(label = "Task")
 }
 
+// --- 2. The Data Class ---
 data class ResourceItem(
-    val id: String,              // unique ID
-    val focusArea: FocusArea,    // Anxiety, Sleep, Stress, etc.
-    val title: String,           // "Breathing Reset"
-    val description: String,     // short explanation
-    val minutes: Int,            // 3
-    val type: ResourceType,      // QUIZ / TASK
-    val xp: Int                  // 15
+    val id: String,
+    val focusArea: FocusArea,
+    val title: String,
+    val description: String,
+    val minutes: Int,
+    val type: ResourceType, // Now this will work
+    val xp: Int,
+    val category: String    // The new field for "Breathing", "Grounding", etc.
 )

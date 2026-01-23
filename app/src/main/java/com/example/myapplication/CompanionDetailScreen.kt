@@ -1,16 +1,15 @@
 package com.example.myapplication
 
-import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -22,25 +21,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.*
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-// Reusing the Clean Palette for consistency
-object CleanColor {
+object DetailColors {
     val Background = Color(0xFFF8F9FA)
     val CardBackground = Color(0xFFFFFFFF)
     val TextPrimary = Color(0xFF1A1C1E)
     val TextSecondary = Color(0xFF6C757D)
-    val Accent = Color(0xFFFFA726) // Orange for Actions
-    val Success = Color(0xFF66BB6A) // Green for Level Up
+    val Accent = Color(0xFFFFA726)
+    val Success = Color(0xFF66BB6A)
+    val XpColor = Color(0xFF42A5F5)
     val Border = Color(0xFFE0E0E0)
 }
 
@@ -48,59 +48,54 @@ object CleanColor {
 @Composable
 fun CompanionDetailScreen(
     navController: NavController,
-    appState: AppState // Assuming this holds global user data
+    appState: AppState
 ) {
     val scope = rememberCoroutineScope()
     val db = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
+    val userId = auth.currentUser?.uid
 
     // --- STATE ---
-    // User's Currency (Coins earned from tasks)
-    var userCoins by remember { mutableStateOf(0) }
-
-    // Pet Stats
-    var petXp by remember { mutableStateOf(0) }
-    var petLevel by remember { mutableStateOf(1) }
-    var foodStock by remember { mutableStateOf(0) }
+    var walletXp by remember { mutableIntStateOf(0) }      // Money
+    var petProgress by remember { mutableIntStateOf(0) }   // Growth
+    var petLevel by remember { mutableIntStateOf(1) }
+    var foodStock by remember { mutableIntStateOf(0) }
     val xpGoal = 100
 
-    // Animation State
     var isPlayingAnimation by remember { mutableStateOf(false) }
 
     // --- FETCH DATA ---
-    LaunchedEffect(Unit) {
-        try {
-            val userId = "yourUid" // Replace with actual Auth ID
-
-            // 1. Get User Wallet (Coins)
-            val userDoc = db.collection("users").document(userId).get().await()
-            userCoins = (userDoc.getLong("coins") ?: 0L).toInt()
-
-            // 2. Get Pet Data
-            val petDoc = db.collection("users").document(userId)
-                .collection("companion").document("yourCompanionId") // Ensure you store/pass this ID
-                .get().await()
-
-            if (petDoc.exists()) {
-                petXp = (petDoc.getLong("xp") ?: 0L).toInt()
-                petLevel = (petDoc.getLong("level") ?: 1L).toInt()
-                foodStock = (petDoc.getLong("foodBasics") ?: 0L).toInt()
-            }
-        } catch (e: Exception) {
-            Log.e("Companion", "Error loading data", e)
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            db.collection("users").document(userId)
+                .collection("companion").document("CAT")
+                .addSnapshotListener { snapshot, e ->
+                    if (snapshot != null && snapshot.exists()) {
+                        walletXp = snapshot.getLong("xp")?.toInt() ?: 0
+                        petProgress = snapshot.getLong("petProgress")?.toInt() ?: 0
+                        petLevel = snapshot.getLong("level")?.toInt() ?: 1
+                        foodStock = snapshot.getLong("foodBasics")?.toInt() ?: 0
+                    }
+                }
         }
     }
 
     Scaffold(
-        containerColor = CleanColors.Background,
+        containerColor = DetailColors.Background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("My Companion", style = MaterialTheme.typography.titleMedium) },
+                title = {
+                    Text(
+                        "My Companion",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = CleanColors.TextPrimary)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = DetailColors.TextPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = CleanColors.Background)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DetailColors.Background)
             )
         }
     ) { padding ->
@@ -108,25 +103,26 @@ fun CompanionDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
+            Spacer(modifier = Modifier.height(10.dp))
+
             // --- 1. INTERACTIVE PET AREA ---
-            // Logic: Click launches animation for 1 cycle
             PetInteractionArea(
                 isPlaying = isPlayingAnimation,
                 onPetClick = {
                     isPlayingAnimation = true
-                    // Reset animation state after it likely finishes (simulated delay)
-                    // In a real app, use Lottie's completion listener if available or a simple delay
                     scope.launch {
                         kotlinx.coroutines.delay(2000)
                         isPlayingAnimation = false
                     }
                 }
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // --- 2. STATS & LEVEL ---
             Column(
@@ -135,123 +131,154 @@ fun CompanionDetailScreen(
             ) {
                 Text(
                     text = "Level $petLevel Cat",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = CleanColors.TextPrimary
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                    color = DetailColors.TextPrimary
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
-                // Custom Progress Bar
+                // Progress Bar
+                val progressAnimation by animateFloatAsState(
+                    targetValue = (petProgress.toFloat() / xpGoal).coerceIn(0f, 1f),
+                    label = "XpAnimation"
+                )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(12.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(Color(0xFFEEEEEE))
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(fraction = (petXp.toFloat() / xpGoal).coerceIn(0f, 1f))
+                            .fillMaxWidth(fraction = progressAnimation)
                             .fillMaxHeight()
-                            .background(CleanColors.Accent)
+                            .background(DetailColors.XpColor)
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("$petXp XP", style = MaterialTheme.typography.labelSmall, color = CleanColors.TextSecondary)
-                    Text("$xpGoal XP", style = MaterialTheme.typography.labelSmall, color = CleanColors.TextSecondary)
+                    Text("Growth: $petProgress", style = MaterialTheme.typography.bodyMedium, color = DetailColors.TextSecondary)
+                    Text("Goal: $xpGoal", style = MaterialTheme.typography.bodyMedium, color = DetailColors.TextSecondary)
                 }
             }
 
-            // --- 3. ACTION BUTTONS (Feed / Level Up) ---
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- 3. ACTION BUTTONS ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // FEED BUTTON
                 ActionButton(
-                    text = "Feed ($foodStock left)",
-                    subtext = "+10 XP",
+                    text = "Feed",
+                    subtext = "($foodStock left)",
                     icon = Icons.Default.ShoppingBag,
                     isActive = foodStock > 0,
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        if (foodStock > 0) {
-                            foodStock -= 1
-                            petXp += 10
-                            // Update Firebase
-                            // db.update("foodBasics", foodStock, "xp", petXp)
+                        if (userId != null && foodStock > 0) {
+                            val petRef = db.collection("users").document(userId)
+                                .collection("companion").document("CAT")
+                            db.runBatch { batch ->
+                                batch.update(petRef, "foodBasics", FieldValue.increment(-1))
+                                batch.update(petRef, "petProgress", FieldValue.increment(15))
+                            }
                         }
                     }
                 )
 
-                // LEVEL UP BUTTON (Only active if XP full)
+                // LEVEL UP BUTTON
                 ActionButton(
                     text = "Level Up!",
                     subtext = "Next Stage",
                     icon = Icons.Default.KeyboardArrowUp,
-                    isActive = petXp >= xpGoal,
-                    isPrimary = true, // Highlights this button
+                    isActive = petProgress >= xpGoal,
+                    isPrimary = true,
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        if (petXp >= xpGoal) {
-                            petXp = 0
-                            petLevel += 1
-                            // Update Firebase
-                            // db.update("level", petLevel, "xp", 0)
+                        if (userId != null && petProgress >= xpGoal) {
+                            val petRef = db.collection("users").document(userId)
+                                .collection("companion").document("CAT")
+                            db.runBatch { batch ->
+                                batch.update(petRef, "petProgress", 0)
+                                batch.update(petRef, "level", FieldValue.increment(1))
+                            }
                         }
                     }
                 )
             }
 
-            Divider(color = CleanColors.Border)
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // --- 4. FOOD SHOP (Spend User Coins) ---
+            Divider(color = DetailColors.Border, thickness = 1.dp)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- 4. FOOD SHOP ---
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Food Shop", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Food Shop", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = DetailColors.TextPrimary)
 
-                    // Coin Balance Badge
+                    // --- BIGGER WALLET DISPLAY ---
                     Surface(
-                        color = Color(0xFFFFF3E0), // Light Orange bg
+                        color = Color(0xFFE3F2FD),
                         shape = RoundedCornerShape(50),
-                        border = BorderStroke(1.dp, Color(0xFFFFE0B2))
+                        border = BorderStroke(1.dp, Color(0xFFBBDEFB))
                     ) {
                         Text(
-                            "💰 $userCoins Coins",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color(0xFFE65100) // Dark Orange text
+                            text = "💳 $walletXp XP",
+                            // Increased Padding and Font Size
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                                color = Color(0xFF1565C0)
+                            )
                         )
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // Scrollable Shop Row
                 val shopItems = listOf(
                     ShopItem("Basic", 10, 1),
-                    ShopItem("Premium", 45, 5), // Bulk buy discount example
+                    ShopItem("Premium", 45, 5),
                     ShopItem("Deluxe", 80, 10)
                 )
 
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(shopItems) { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    shopItems.forEach { item ->
                         ShopCard(
                             item = item,
-                            canAfford = userCoins >= item.price,
+                            canAfford = walletXp >= item.price,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(160.dp),
                             onBuy = {
-                                userCoins -= item.price
-                                foodStock += item.foodAmount
-                                // Update Firebase: users/{uid} coins -= price, users/{uid}/companion/... food += amount
+                                if (userId != null && walletXp >= item.price) {
+                                    val petRef = db.collection("users").document(userId)
+                                        .collection("companion").document("CAT")
+                                    db.runBatch { batch ->
+                                        batch.update(petRef, "xp", FieldValue.increment(-item.price.toLong()))
+                                        batch.update(petRef, "foodBasics", FieldValue.increment(item.foodAmount.toLong()))
+                                    }
+                                }
                             }
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
@@ -268,26 +295,24 @@ fun PetInteractionArea(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .height(340.dp)
+            .clip(RoundedCornerShape(32.dp))
             .background(Color.White)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null // Removes default ripple for cleaner feel
+                indication = null
             ) { onPetClick() },
         contentAlignment = Alignment.Center
     ) {
-        // Lottie Animation
         val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.cat_petting))
 
-        // This makes it interactive: It plays only when `isPlaying` is true
         LottieAnimation(
             composition = composition,
             isPlaying = isPlaying,
-            iterations = 1, // Plays once then stops
+            iterations = 1,
             modifier = Modifier
-                .size(200.dp)
-                .scale(scale) // Subtle bounce effect
+                .size(300.dp)
+                .scale(scale)
         )
 
         if (!isPlaying) {
@@ -295,9 +320,9 @@ fun PetInteractionArea(
                 "Tap to Pet Me!",
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = CleanColors.TextSecondary
+                    .padding(bottom = 24.dp),
+                style = MaterialTheme.typography.titleMedium,
+                color = DetailColors.TextSecondary
             )
         }
     }
@@ -314,32 +339,43 @@ fun ActionButton(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isActive) {
-        if (isPrimary) CleanColor.Success else CleanColors.CardBackground
+        if (isPrimary) DetailColors.Success else DetailColors.CardBackground
     } else Color(0xFFF0F0F0)
 
-    val contentColor = if (isActive && isPrimary) Color.White else CleanColors.TextPrimary
-    val borderColor = if (isActive && !isPrimary) CleanColors.Accent else Color.Transparent
+    val contentColor = if (isActive && isPrimary) Color.White else DetailColors.TextPrimary
+    val borderColor = if (isActive && !isPrimary) DetailColors.Accent else Color.Transparent
 
     Surface(
         onClick = onClick,
         enabled = isActive,
-        modifier = modifier.height(72.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.height(90.dp),
+        shape = RoundedCornerShape(24.dp),
         color = backgroundColor,
         border = BorderStroke(1.dp, borderColor),
-        shadowElevation = if (isActive) 2.dp else 0.dp
+        shadowElevation = if (isActive) 4.dp else 0.dp
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(12.dp)
         ) {
-            Icon(icon, contentDescription = null, tint = if(isActive) contentColor else Color.Gray)
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text(text, style = MaterialTheme.typography.titleSmall, color = if(isActive) contentColor else Color.Gray)
-                Text(subtext, style = MaterialTheme.typography.labelSmall, color = if(isActive) contentColor.copy(0.8f) else Color.Gray)
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if(isActive) contentColor else Color.Gray,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = if(isActive) contentColor else Color.Gray
+            )
+            Text(
+                text = subtext,
+                style = MaterialTheme.typography.bodySmall,
+                color = if(isActive) contentColor.copy(0.8f) else Color.Gray
+            )
         }
     }
 }
@@ -347,31 +383,57 @@ fun ActionButton(
 data class ShopItem(val name: String, val price: Int, val foodAmount: Int)
 
 @Composable
-fun ShopCard(item: ShopItem, canAfford: Boolean, onBuy: () -> Unit) {
+fun ShopCard(
+    item: ShopItem,
+    canAfford: Boolean,
+    onBuy: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val opacity = if (canAfford) 1f else 0.5f
+
     Card(
         onClick = onBuy,
         enabled = canAfford,
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = CleanColors.CardBackground,
+            containerColor = DetailColors.CardBackground,
             disabledContainerColor = Color(0xFFF5F5F5)
         ),
-        border = BorderStroke(1.dp, CleanColors.Border),
-        modifier = Modifier.width(110.dp).height(130.dp)
+        border = BorderStroke(1.dp, DetailColors.Border),
+        modifier = modifier.alpha(opacity)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
+            modifier = Modifier.fillMaxSize().padding(8.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("🍖 x${item.foodAmount}", fontSize = 20.sp)
+            Text("🍖", fontSize = 36.sp)
             Spacer(Modifier.height(8.dp))
-            Text(item.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(4.dp))
             Text(
-                "${item.price} Coins",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (canAfford) CleanColors.Accent else Color.Gray
+                "x${item.foodAmount}",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = DetailColors.TextPrimary
             )
+            Text(
+                item.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = DetailColors.TextSecondary
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Surface(
+                color = if(canAfford) Color(0xFFE3F2FD) else Color(0xFFEEEEEE),
+                shape = CircleShape
+            ) {
+                Text(
+                    "${item.price} XP",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (canAfford) DetailColors.XpColor else Color.Gray,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
+
+fun Modifier.alpha(alpha: Float) = this.then(Modifier.graphicsLayer(alpha = alpha))
