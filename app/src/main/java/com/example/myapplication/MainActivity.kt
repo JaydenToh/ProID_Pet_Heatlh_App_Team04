@@ -98,5 +98,13 @@ fun AppNavigation() {
             ChatScreen(navController, chatId, userId)
         }
 
+        composable(
+            route = "calling_screen/{name}",
+            arguments = listOf(navArgument("name") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val name = backStackEntry.arguments?.getString("name") ?: "User"
+            CallingScreen(navController = navController, name = name)
+        }
+
     }
 }

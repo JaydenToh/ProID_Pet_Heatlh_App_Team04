@@ -2,12 +2,15 @@ package com.example.myapplication
 
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
@@ -18,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -125,23 +129,53 @@ fun MentorDashboard(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
+                // --- MODIFIED HEADER SECTION START ---
                 item {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFF0F0F0),
-                            modifier = Modifier.size(80.dp)
+                        // We use a Row to put the Avatar and the Badge side-by-side
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Person, null, modifier = Modifier.size(40.dp), tint = WellnessGrayText)
+                            // 1. The Generic Avatar (Left)
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFE0E0E0),
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .border(1.dp, Color.White, CircleShape)
+                                    .shadow(4.dp, CircleShape)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        null,
+                                        modifier = Modifier.size(35.dp),
+                                        tint = Color.Gray
+                                    )
+                                }
                             }
+
+                            Spacer(modifier = Modifier.width(20.dp))
+
+                            Image(
+                                painter = painterResource(id = R.drawable.mentor_badge),
+                                contentDescription = "Top Mentor Badge",
+                                modifier = Modifier
+                                    .size(90.dp) // Slightly larger to emphasize status
+                                    .shadow(elevation = 8.dp, shape = CircleShape) // Adds depth to the badge
+                            )
                         }
-                        Spacer(Modifier.height(12.dp))
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Name and Title
                         Text(
                             text = profile?.name ?: "Mentor",
                             style = MaterialTheme.typography.headlineSmall,
@@ -149,12 +183,13 @@ fun MentorDashboard(navController: NavController) {
                             color = WellnessBlack
                         )
                         Text(
-                            text = profile?.bio ?:"Professional Mentor",
+                            text = profile?.bio ?: "Professional Mentor",
                             style = MaterialTheme.typography.bodyMedium,
                             color = WellnessGrayText
                         )
                     }
                 }
+                // --- MODIFIED HEADER SECTION END ---
 
                 item {
                     Text(
@@ -174,7 +209,8 @@ fun MentorDashboard(navController: NavController) {
                                 val mentorId = auth.currentUser?.uid ?: ""
                                 val chatId = if (studentId < mentorId) "${studentId}_${mentorId}" else "${mentorId}_${studentId}"
                                 navController.navigate("chat_screen/$chatId/$mentorId")
-                            }
+                            },
+                            navController = navController
                         )
                     } else {
                         EmptyStateCard()
@@ -185,17 +221,21 @@ fun MentorDashboard(navController: NavController) {
     }
 }
 @Composable
-fun ModernStudentCard(student: StudentProfile, onChatClick: () -> Unit) {
-    MenteeCard(student, onChatClick)
+fun ModernStudentCard(
+    student: StudentProfile,
+    onChatClick: () -> Unit,
+    navController: NavController
+) {
+    MenteeCard(student, onChatClick, navController)
 }
 @Composable
-fun MenteeCard(student: StudentProfile, onChatClick: () -> Unit) {
+fun MenteeCard(student: StudentProfile, onChatClick: () -> Unit, navController: NavController? = null) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 4.dp) // Space for shadow to breathe
+            .padding(vertical = 12.dp, horizontal = 4.dp)
             .shadow(
-                elevation = 10.dp, // Creates the soft diffused bottom shadow
+                elevation = 10.dp,
                 shape = RoundedCornerShape(24.dp),
                 ambientColor = Color.Black.copy(alpha = 0.1f),
                 spotColor = Color.Black.copy(alpha = 0.25f)
@@ -205,9 +245,10 @@ fun MenteeCard(student: StudentProfile, onChatClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             color = WellnessWhite,
-            border = BorderStroke(2.dp, WellnessBlack) // The bold black border from your image
+            border = BorderStroke(2.dp, WellnessBlack)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
+                // ... (Existing Header and Tags code remains exactly the same) ...
                 Surface(
                     color = Color(0xFFF5F5F5),
                     shape = RoundedCornerShape(8.dp)
@@ -220,18 +261,14 @@ fun MenteeCard(student: StudentProfile, onChatClick: () -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                 }
-
                 Spacer(Modifier.height(16.dp))
-
                 Text(
                     text = "Focus Areas",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = WellnessGrayText,
                 )
-
                 Spacer(Modifier.height(12.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -254,21 +291,43 @@ fun MenteeCard(student: StudentProfile, onChatClick: () -> Unit) {
 
                 Spacer(Modifier.height(24.dp))
 
-                // Primary Black Button
-                Button(
-                    onClick = onChatClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WellnessBlack),
-                    shape = RoundedCornerShape(16.dp)
+                // --- MODIFIED BUTTON ROW ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Call Button
+                    Button(
+                        onClick = {
+
+                            navController?.navigate("calling_screen/Student")
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(54.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Filled.Call, null, tint = WellnessBlack, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Call", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = WellnessBlack)
+                    }
+
+                    // Chat Button
+                    Button(
+                        onClick = onChatClick,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(54.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WellnessBlack),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
                         Icon(Icons.Default.Chat, null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text("Open Chat", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Chat", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
+                // --- END MODIFIED BUTTON ROW ---
 
                 Spacer(Modifier.height(12.dp))
 

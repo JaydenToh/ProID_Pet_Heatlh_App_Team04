@@ -13,9 +13,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.AddIcCall
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.SpatialAudioOff
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -390,14 +388,42 @@ fun MentorDetailCard(
                     }
                 }
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Call Button
+                IconButton(
+                    onClick = {
+                        navController.navigate("calling_screen/${mentor.name}")
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Call,
+                        contentDescription = "Call",
+                        tint = CleanColors.TextPrimary, // Darker color for emphasis
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
-            // 5. Chat Icon matching the Arrow icon placement in ActionRow
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Chat,
-                contentDescription = "Chat",
-                tint = CleanColors.TextSecondary,
-                modifier = Modifier.size(24.dp)
-            )
+                Spacer(modifier = Modifier.width(4.dp))
+
+                IconButton(
+                    onClick = {
+                        val mentorId = mentor.uid
+                        val studentId = currentStudentId
+                        if (studentId.isNotEmpty() && mentorId.isNotEmpty()) {
+                            val chatId = if (studentId < mentorId) "${studentId}_${mentorId}" else "${mentorId}_${studentId}"
+                            navController.navigate("chat_screen/$chatId/$studentId")
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = "Chat",
+                        tint = CleanColors.TextSecondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            // --- END MODIFIED ACTIONS ---
         }
     }
 }

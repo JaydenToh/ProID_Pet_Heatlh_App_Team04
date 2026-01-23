@@ -26,14 +26,14 @@ class FirebaseHelper{
         }
     }
 
-    suspend fun signUp(username: String, password: String, role: String): Boolean {
+    suspend fun signUp(username: String, password: String, age:String, role: String): Boolean {
         return try {
             val email = toEmail(username)
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             val userId = result.user?.uid
 
             if (userId != null) {
-                val userMap = mapOf("email" to email, "role" to role)
+                val userMap = mapOf("email" to email, "role" to role, "age" to age)
                 FirebaseFirestore.getInstance().collection("users")
                     .document(userId).set(userMap).await()
                 true
