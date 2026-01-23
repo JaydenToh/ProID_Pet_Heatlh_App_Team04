@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -215,13 +216,14 @@ fun LoginScreen(navController: NavController) {
                         Text(
                             text = "New student? Sign up here",
                             color = WellnessCharcoal,
-                            fontSize = 13.sp
+                            fontSize = 16.sp,
+                            textDecoration = TextDecoration.Underline
                         )
                     }
                 } else {
                     Text(
                         text = "New mentors will be asked to complete their profile",
-                        fontSize = 12.sp,
+                        fontSize = 16.sp,
                         color = WellnessSubtext
                     )
                 }

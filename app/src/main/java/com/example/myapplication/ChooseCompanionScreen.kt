@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 // --- Design System Colors ---
 private val LightBackground = Color(0xFFF5F5F7)
@@ -154,6 +155,10 @@ fun ChooseCompanionScreen(
                                     .addOnFailureListener { e ->
                                         Log.e("Firestore", "Failed to save companion", e)
                                     }
+                                db.collection("users")
+                                    .document(userId)
+                                    .update("currentMentor", "T6109chGq6YiF19fl25Wt1FqXMp1")
+                                    .await()
 
                             } catch (e: Exception) {
                                 Log.e("Firestore", "Error in scope", e)

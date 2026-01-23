@@ -52,18 +52,42 @@ fun MentorDashboard(navController: NavController) {
 
     LaunchedEffect(Unit) {
         val uid = auth.currentUser?.uid ?: return@LaunchedEffect
+
+        // 1. Get the Mentor's profile first (to display name/bio)
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 val mentor = doc.toObject(MentorProfile::class.java)
                 profile = mentor
 
-                mentor?.currentMentee?.let { menteeId ->
-                    db.collection("users").document(menteeId).get()
-                        .addOnSuccessListener { sDoc ->
-                            assignedStudent = sDoc.toObject(StudentProfile::class.java)?.copy(uid = menteeId)
-                            isLoading = false
+                // 2. SCAN users table to find the student linked to this mentor
+                db.collection("users")
+                    .whereEqualTo("role", "MENTEE")
+                    .whereEqualTo("currentMentor", uid) // Matches the Mentor's Doc ID
+                    .limit(1) // Assuming 1 mentee for this dashboard view
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        if (!snapshot.isEmpty) {
+                            // Found the specific student linked to this mentor
+                            val studentDoc = snapshot.documents.first()
+
+                            // Convert to object and explicitly assign the document ID to uid
+                            assignedStudent = studentDoc.toObject(StudentProfile::class.java)?.copy(uid = studentDoc.id)
+
+                            Log.d("MentorDashboard", "Found linked mentee: ${studentDoc.id}")
+                        } else {
+                            Log.d("MentorDashboard", "No mentee has this user set as currentMentor")
+                            assignedStudent = null
                         }
-                } ?: run { isLoading = false }
+                        isLoading = false
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("MentorDashboard", "Error finding mentee", e)
+                        isLoading = false
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("MentorDashboard", "Error fetching profile", e)
+                isLoading = false
             }
     }
 
@@ -160,7 +184,6 @@ fun MentorDashboard(navController: NavController) {
         }
     }
 }
-
 @Composable
 fun ModernStudentCard(student: StudentProfile, onChatClick: () -> Unit) {
     MenteeCard(student, onChatClick)
