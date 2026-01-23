@@ -80,6 +80,9 @@ fun AppNavigation() {
         composable(route = "resources") {
             ResourcesScreen(navController = navController, appState = appState)
         }
+        composable(route = "resource_1") {
+            Resource1(navController = navController)
+        }
         composable("MentorDashboard") {
             MentorDashboard(navController = navController)
         }
