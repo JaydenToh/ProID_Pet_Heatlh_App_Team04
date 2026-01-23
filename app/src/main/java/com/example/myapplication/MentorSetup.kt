@@ -1,8 +1,8 @@
 package com.example.myapplication
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import com.google.firebase.firestore.DocumentId
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.input.VisualTransformation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -26,13 +27,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 data class MentorProfile(
+    @DocumentId val uid: String = "",
     val name: String = "",
     val bio: String = "",
+    val role: String = "MENTOR",
     val supportAreas: List<String> = emptyList(),
-    val availability: String = "",
-    val isVerified: Boolean = false
+    val availability: List<String> = emptyList(),
+    val currentMentee: String = ""
 )
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MentorSetupScreen(navController: NavController) {
     var name by remember { mutableStateOf("") }
@@ -41,88 +45,165 @@ fun MentorSetupScreen(navController: NavController) {
     val selectedAreas = remember { mutableStateListOf<String>() }
 
     val availabilityOptions = listOf("Weekdays", "Weeknights", "Weekends", "Flexible")
-    var selectedAvailability by remember { mutableStateOf("Weeknights") }
+    val selectedAvailability = remember { mutableStateListOf<String>() }
 
     val scope = rememberCoroutineScope()
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Text("Setup Profile", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = WellnessCharcoal)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        WellnessTextField(value = name, onValueChange = { name = it }, label = "Your Name *")
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = bio,
-            onValueChange = { bio = it },
-            label = { Text("Bio") },
-            modifier = Modifier.fillMaxWidth().height(120.dp),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Text("Areas You Support *", modifier = Modifier.padding(vertical = 16.dp), fontWeight = FontWeight.Bold)
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), // Replaces mainAxisSpacing
-            verticalArrangement = Arrangement.spacedBy(8.dp)     // Replaces crossAxisSpacing
-        ) {
-            supportAreas.forEach { area ->
-                FilterChip(
-                    selected = selectedAreas.contains(area),
-                    onClick = {
-                        if (selectedAreas.contains(area)) selectedAreas.remove(area)
-                        else selectedAreas.add(area)
-                    },
-                    label = { Text(area) },
-                    modifier = Modifier.padding(vertical = 4.dp) // Optional extra padding
-                )
-            }
+    Scaffold(
+        containerColor = WellnessBg,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Profile Setup", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = WellnessBg)
+            )
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text("Availability *", modifier = Modifier.padding(top = 24.dp, bottom = 16.dp), fontWeight = FontWeight.Bold)
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            availabilityOptions.forEach { option ->
-                FilterChip(
-                    selected = selectedAvailability == option,
-                    onClick = { selectedAvailability = option },
-                    label = { Text(option) },
-                    // Customizing colors to match your Charcoal theme
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = WellnessCharcoal,
-                        selectedLabelColor = Color.White
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 1. Shadowed Card for Personal Info - Matches photo_6310023668066619168_x.jpg style
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = WellnessWhite,
+                border = BorderStroke(2.dp, WellnessBlack),
+                modifier = Modifier.fillMaxWidth().shadow(10.dp, RoundedCornerShape(24.dp))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text("Basic Info", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Spacer(Modifier.height(16.dp))
+
+                    // Uses pill-style input similar to Explore Resources bar
+                    WellnessTextField(value = name, onValueChange = { name = it }, label = "Full Name")
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Large rounded bio field
+                    OutlinedTextField(
+                        value = bio,
+                        onValueChange = { bio = it },
+                        placeholder = { Text("Share your mentoring experience...") },
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = WellnessBlack,
+                            unfocusedBorderColor = WellnessBorder,
+                            unfocusedContainerColor = Color(0xFFF5F5F5),
+                            focusedContainerColor = Color(0xFFF5F5F5)
+                        )
                     )
-                )
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
-            onClick = {
-                scope.launch {
-                    val profile = MentorProfile(name, bio, selectedAreas.toList(), selectedAvailability)
-                    auth.currentUser?.uid?.let { uid ->
-                        db.collection("users").document(uid).set(profile, SetOptions.merge()).await()
-                        navController.navigate("MentorDashboard")
+            // 2. Focus Areas - Inspired by "Select Your Focus" (photo_6310023668066619169_x.jpg)
+            Text(
+                "Areas You Support",
+                modifier = Modifier.align(Alignment.Start),
+                fontWeight = FontWeight.Bold,
+                color = WellnessBlack
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                supportAreas.forEach { area ->
+                    val isSelected = selectedAreas.contains(area)
+                    Surface(
+                        modifier = Modifier.clickable {
+                            if (isSelected) selectedAreas.remove(area) else selectedAreas.add(area)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) WellnessBlack else WellnessWhite,
+                        border = BorderStroke(1.dp, if (isSelected) WellnessBlack else WellnessBorder)
+                    ) {
+                        Text(
+                            text = area,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            color = if (isSelected) Color.White else WellnessBlack,
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = WellnessCharcoal),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Save Profile", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 3. Availability Section
+            Text(
+                "Availability",
+                modifier = Modifier.align(Alignment.Start),
+                fontWeight = FontWeight.Bold,
+                color = WellnessBlack
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                availabilityOptions.forEach { option ->
+                    val isSelected = selectedAvailability.contains(option)
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            if (isSelected) selectedAvailability.remove(option)
+                            else selectedAvailability.add(option)
+                        },
+                        label = { Text(option) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = WellnessBlack,
+                            selectedLabelColor = Color.White,
+                            containerColor = WellnessWhite
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = WellnessBorder,
+                            selectedBorderColor = WellnessBlack,
+                            borderWidth = 1.dp,
+                            enabled = true,
+                            selected = true,
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        val profile = MentorProfile(
+                            name = name,
+                            bio = bio,
+                            supportAreas = selectedAreas.toList(),
+                            availability = selectedAvailability.toList(),
+                        )
+                        auth.currentUser?.uid?.let { uid ->
+                            db.collection("users").document(uid).set(profile, SetOptions.merge()).await()
+                            navController.navigate("MentorDashboard")
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(70.dp).padding(bottom = 24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = WellnessBlack),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("Save and Continue", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
         }
     }
 }
