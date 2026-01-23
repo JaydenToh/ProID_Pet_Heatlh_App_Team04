@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -136,30 +137,60 @@ fun ChooseCompanionScreen(
                                     "xpGoal" to 100
                                 )
 
-                                // 2. Save to users -> {userId} -> companion -> {PET_NAME}
-                                // We use .set() to ensure the document is created if it doesn't exist
                                 db.collection("users")
                                     .document(userId)
                                     .collection("companion")
-                                    .document(pet.title.uppercase()) // Matches "CAT" in your screenshot
+                                    .document(pet.title.uppercase())
                                     .set(initialCompanionData)
-                                    .addOnSuccessListener {
-                                        Log.d("Firestore", "Companion ${pet.title} successfully created")
-
-                                        // 3. Navigate only AFTER the save is successful
-                                        navController.navigate("home") {
-                                            popUpTo("student_dashboard") { inclusive = true }
-                                            launchSingleTop = true
-                                        }
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.e("Firestore", "Failed to save companion", e)
-                                    }
-                                db.collection("users")
-                                    .document(userId)
-                                    .update("currentMentor", "T6109chGq6YiF19fl25Wt1FqXMp1")
                                     .await()
 
+                                Log.d("Firestore", "Companion created successfully")
+
+                                // --- STEP 2: Find & Assign Available Mentor ---
+                                val availableMentorsSnapshot = db.collection("users")
+                                    .whereEqualTo("role", "MENTOR")
+                                    .whereEqualTo("currentMentee", "")
+                                    .limit(20) // Get a pool of 20 to pick randomly from
+                                    .get()
+                                    .await()
+
+                                if (!availableMentorsSnapshot.isEmpty) {
+                                    // Pick a random mentor from the available pool
+                                    val randomMentorDoc = availableMentorsSnapshot.documents.random()
+                                    val mentorId = randomMentorDoc.id
+
+                                    // Run a Transaction to safely update both users at once
+                                    db.runTransaction { transaction ->
+                                        val studentRef = db.collection("users").document(userId)
+                                        val mentorRef = db.collection("users").document(mentorId)
+
+                                        // Double-check availability inside transaction (prevents race conditions)
+                                        val freshMentorSnapshot = transaction.get(mentorRef)
+                                        val currentMentee = freshMentorSnapshot.getString("currentMentee")
+
+                                        if (currentMentee.isNullOrEmpty()) {
+                                            // Assign Mentor to Student
+                                            transaction.update(studentRef, "currentMentor", mentorId)
+                                            // Assign Student to Mentor
+                                            transaction.update(mentorRef, "currentMentee", userId)
+                                        } else {
+                                            // If someone took this mentor in the last millisecond, abort
+                                            throw FirebaseFirestoreException(
+                                                "Mentor taken",
+                                                FirebaseFirestoreException.Code.ABORTED
+                                            )
+                                        }
+                                    }.await()
+                                    Log.d("Firestore", "Auto-assigned mentor: $mentorId")
+                                } else {
+                                    Log.d("Firestore", "No available mentors found.")
+                                }
+
+                                // --- STEP 3: Navigate ---
+                                navController.navigate("home") {
+                                    popUpTo("student_dashboard") { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             } catch (e: Exception) {
                                 Log.e("Firestore", "Error in scope", e)
                             }
