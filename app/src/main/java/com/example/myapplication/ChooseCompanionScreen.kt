@@ -187,7 +187,7 @@ fun ChooseCompanionScreen(
                                 }
 
                                 // --- STEP 3: Navigate ---
-                                navController.navigate("home") {
+                                navController.navigate("wellness_checkin") {
                                     popUpTo("student_dashboard") { inclusive = true }
                                     launchSingleTop = true
                                 }

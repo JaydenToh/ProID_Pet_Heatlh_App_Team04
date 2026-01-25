@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lightbulb
@@ -463,7 +464,38 @@ fun CompletionContent(onComplete: () -> Unit) {
             }
         }
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(24.dp))
+        Surface(
+            color = Color(0xFFE3F2FD), // Light Blue
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // You might need to import androidx.compose.material.icons.filled.Call
+                Icon(
+                    imageVector = Icons.Filled.Call,
+                    contentDescription = "Phone",
+                    tint = Color(0xFF1565C0), // Darker Blue
+                    modifier = Modifier.size(24.dp)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Text(
+                    text = "Reach out to NHG Polyclinics' Psychology Services at 6355 3000 if you or your loved ones need professional help.",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color(0xFF0D47A1), // Dark Text Blue
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 18.sp
+                    )
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
 
         Button(
             onClick = onComplete,

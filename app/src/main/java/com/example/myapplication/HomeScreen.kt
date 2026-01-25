@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.AddIcCall
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +30,8 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import androidx.compose.ui.platform.LocalUriHandler
+
 
 // --- Consistent Design System Colors ---
 object CleanColors {
@@ -51,6 +54,7 @@ fun HomeScreen(
     val petName = selectedCompanion?.title ?: "Your Pet"
     val petEmoji = selectedCompanion?.emoji ?: "🐱"
     val xpGoal = 100
+    val uriHandler = LocalUriHandler.current
 
     var petProgress by remember { mutableIntStateOf(0) }
     var level by remember { mutableIntStateOf(1) }

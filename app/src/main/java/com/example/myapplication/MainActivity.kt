@@ -105,6 +105,9 @@ fun AppNavigation() {
             val name = backStackEntry.arguments?.getString("name") ?: "User"
             CallingScreen(navController = navController, name = name)
         }
+        composable("wellness_checkin") {
+            WellnessCheckinScreen(navController)
+        }
 
     }
 }
