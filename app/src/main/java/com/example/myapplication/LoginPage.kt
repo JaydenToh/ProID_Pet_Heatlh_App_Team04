@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -43,6 +44,7 @@ fun LoginScreen(navController: NavController) {
     var isSignUp by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
 
     Scaffold(containerColor = WellnessBg) { padding ->
@@ -97,7 +99,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Black button style matching "Play with Cat"
             Button(
                 onClick = {
 
@@ -114,7 +115,7 @@ fun LoginScreen(navController: NavController) {
 
                     scope.launch {
                         val success = if (isSignUp) {
-                            firebaseHelper.signUp(email, password, "MENTEE")
+                            firebaseHelper.signUp(email, password,age, "MENTEE")
                         } else {
                             firebaseHelper.signIn(email, password)
                         }
@@ -215,13 +216,14 @@ fun LoginScreen(navController: NavController) {
                         Text(
                             text = "New student? Sign up here",
                             color = WellnessCharcoal,
-                            fontSize = 13.sp
+                            fontSize = 16.sp,
+                            textDecoration = TextDecoration.Underline
                         )
                     }
                 } else {
                     Text(
                         text = "New mentors will be asked to complete their profile",
-                        fontSize = 12.sp,
+                        fontSize = 16.sp,
                         color = WellnessSubtext
                     )
                 }
@@ -273,6 +275,7 @@ fun SignUpScreen(navController: NavController) {
     val firebaseHelper = remember { FirebaseHelper() }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -323,6 +326,9 @@ fun SignUpScreen(navController: NavController) {
                     WellnessTextField(email, { email = it }, "Student Email")
                     Spacer(modifier = Modifier.height(16.dp))
                     WellnessTextField(password, { password = it }, "Password", isPassword = true)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    WellnessTextField(age, { age = it }, "Age")
+
 
                     Spacer(modifier = Modifier.height(32.dp))
 
@@ -331,7 +337,7 @@ fun SignUpScreen(navController: NavController) {
                             isLoading = true
                             scope.launch {
                                 // Force the role to "MENTEE"
-                                val success = firebaseHelper.signUp(email, password, "MENTEE")
+                                val success = firebaseHelper.signUp(email, password,age, "MENTEE")
                                 isLoading = false
                                 if (success) {
                                     navController.navigate("login") {

@@ -12,19 +12,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -36,6 +41,7 @@ private val DarkButton = Color(0xFF1A1A1A)
 private val TextPrimary = Color(0xFF1A1A1A)
 private val TextSecondary = Color(0xFF757575)
 private val BorderLight = Color(0xFFE0E0E0)
+private val AccentBlue = Color(0xFFE3F2FD) // Soft blue for lesson headers
 
 // Data Model
 data class Question(
@@ -54,26 +60,41 @@ fun Resource1(navController: NavController) {
     var currentScreen by remember { mutableStateOf(ScreenState.INFO) }
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
     var selectedOption by remember { mutableStateOf<Int?>(null) }
-    var isPlayingBreathing by remember { mutableStateOf(false) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid
 
+    // Updated Questions based on the "Coping with Depression" Lesson
     val questions = remember {
         listOf(
-            Question("How many seconds should you inhale?", listOf("2 seconds", "4 seconds", "10 seconds"), 1),
-            Question("What is the main goal of deep breathing?", listOf("Run faster", "Calm the nervous system", "Stay awake"), 1),
-            Question("You should breathe deeply into your...", listOf("Shoulders", "Chest", "Belly/Diaphragm"), 2),
-            Question("Exhaling slowly helps to...", listOf("Increase heart rate", "Lower stress", "Improve vision"), 1),
-            Question("When is the best time to practice?", listOf("Only when angry", "Anytime", "Never"), 1)
+            Question(
+                text = "What is a key difference between normal sadness and depression?",
+                options = listOf(
+                    "Depression only lasts a few hours",
+                    "Depression affects daily life and lasts longer",
+                    "Sadness makes people more energetic"
+                ),
+                correctAnswerIndex = 1
+            ),
+            Question(
+                text = "Which is a common sign of depression?",
+                options = listOf(
+                    "Always feeling happy",
+                    "Persistent low mood or loss of interest",
+                    "Better focus than usual"
+                ),
+                correctAnswerIndex = 1
+            ),
+            Question(
+                text = "A healthy way to cope with depression is to:",
+                options = listOf(
+                    "Keep feelings to yourself",
+                    "Reach out for support or talk to someone trusted",
+                    "Ignore feelings and stay isolated"
+                ),
+                correctAnswerIndex = 1
+            )
         )
-    }
-
-    LaunchedEffect(isPlayingBreathing) {
-        if (isPlayingBreathing) {
-            delay(3000)
-            isPlayingBreathing = false
-        }
     }
 
     Scaffold(
@@ -82,7 +103,7 @@ fun Resource1(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Breathing Reset",
+                        "Coping with Depression",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
@@ -115,8 +136,6 @@ fun Resource1(navController: NavController) {
             when (screen) {
                 ScreenState.INFO -> {
                     InfoContent(
-                        isPlaying = isPlayingBreathing,
-                        onPetClick = { isPlayingBreathing = true },
                         onStartQuiz = { currentScreen = ScreenState.QUIZ }
                     )
                 }
@@ -151,7 +170,7 @@ fun Resource1(navController: NavController) {
 }
 
 @Composable
-fun InfoContent(isPlaying: Boolean, onPetClick: () -> Unit, onStartQuiz: () -> Unit) {
+fun InfoContent(onStartQuiz: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -159,46 +178,20 @@ fun InfoContent(isPlaying: Boolean, onPetClick: () -> Unit, onStartQuiz: () -> U
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Hero Card
-        Card(
+        // Hero Image / Icon
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .clickable { onPetClick() },
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                .size(80.dp)
+                .background(AccentBlue, RoundedCornerShape(20.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (isPlaying) "🌬️" else "▶️",
-                    fontSize = 72.sp
-                )
-                if (!isPlaying) {
-                    Text(
-                        text = "Tap to Start Exercise",
-                        style = MaterialTheme.typography.labelLarge.copy(color = TextSecondary),
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
-                    )
-                } else {
-                    Text(
-                        text = "Breathe In...",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
-                    )
-                }
-            }
+            Text("🛡️", fontSize = 40.sp)
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "About Breathing Reset",
+            text = "Understanding Depression",
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
@@ -207,51 +200,42 @@ fun InfoContent(isPlaying: Boolean, onPetClick: () -> Unit, onStartQuiz: () -> U
             textAlign = TextAlign.Center
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Controlled breathing helps reduce cortisol levels and physically signals your brain to relax.",
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = TextSecondary,
-                lineHeight = 24.sp,
-                fontSize = 16.sp
-            )
+            text = "Learn to recognise signs and seek support.",
+            style = MaterialTheme.typography.bodyLarge.copy(color = TextSecondary),
+            textAlign = TextAlign.Center
         )
 
         Spacer(Modifier.height(24.dp))
 
-        // Metadata Pills
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Surface(
-                color = CardWhite,
-                shape = RoundedCornerShape(50),
-                border = BorderStroke(1.dp, BorderLight),
-                modifier = Modifier.padding(end = 8.dp)
-            ) {
-                Text(
-                    text = "⏱ 3 min",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-            Surface(
-                color = CardWhite,
-                shape = RoundedCornerShape(50),
-                border = BorderStroke(1.dp, BorderLight)
-            ) {
-                Text(
-                    text = "⚡ +15 XP",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-        }
+        // Lesson Content Cards
+        LessonSection(
+            icon = Icons.Default.Psychology,
+            title = "1. What Is It?",
+            content = "Feeling sad sometimes is normal, but depression is more than just sadness. It affects your mood, thoughts, and energy. If feelings last for weeks and affect daily life, it may be depression."
+        )
+
+        LessonSection(
+            icon = Icons.Default.Lightbulb,
+            title = "2. Common Signs",
+            content = "• Persistent sadness or low mood\n• Loss of interest in hobbies\n• Sleep or appetite changes\n• Feeling tired or low energy\n• Difficulty concentrating"
+        )
+
+
+
+        LessonSection(
+            icon = Icons.Default.Favorite,
+            title = "3. Causes",
+            content = "Depression can arise from a mix of factors, including stressful life events, ongoing pressure, family history, and brain chemistry. It can happen to anyone."
+        )
+
+        LessonSection(
+            icon = Icons.Default.SelfImprovement,
+            title = "4. Coping & Support",
+            content = "• Talk with someone you trust\n• Maintain a healthy routine\n• Do enjoyable activities\n• Reach out for professional help\n\nThere is no shame in asking for help."
+        )
 
         Spacer(Modifier.height(32.dp))
 
@@ -263,10 +247,38 @@ fun InfoContent(isPlaying: Boolean, onPetClick: () -> Unit, onStartQuiz: () -> U
             colors = ButtonDefaults.buttonColors(containerColor = DarkButton),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Text("Start Quiz", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            Text("Take Mini Quiz", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun LessonSection(icon: ImageVector, title: String, content: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        border = BorderStroke(1.dp, BorderLight)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = icon, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = content,
+                style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary, lineHeight = 20.sp)
+            )
+        }
     }
 }
 
@@ -284,7 +296,7 @@ fun QuizContent(
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        // --- 1. Progress Bar (Pinned Top) ---
+        // --- 1. Progress Bar ---
         val progress by animateFloatAsState(targetValue = (currentIndex + 1).toFloat() / totalQuestions)
         LinearProgressIndicator(
             progress = { progress },
@@ -296,17 +308,15 @@ fun QuizContent(
             trackColor = Color.White
         )
 
-        // --- 2. CENTERED BLOCK (Shifted Upwards) ---
+        // --- 2. CENTERED BLOCK ---
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Spacer (Smaller weight pulls content UP)
             Spacer(modifier = Modifier.weight(0.5f))
 
-            // Question Count
             Text(
                 text = "Question ${currentIndex + 1} of $totalQuestions",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -317,20 +327,18 @@ fun QuizContent(
 
             Spacer(Modifier.height(16.dp))
 
-            // The Question
             Text(
                 text = question.text,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
                     color = TextPrimary,
-                    fontSize = 26.sp
+                    fontSize = 24.sp
                 ),
                 textAlign = TextAlign.Center
             )
 
             Spacer(Modifier.height(32.dp))
 
-            // The Options
             question.options.forEachIndexed { index, option ->
                 val isSelected = selectedOption == index
                 val borderColor = if (isSelected) DarkButton else BorderLight
@@ -346,7 +354,7 @@ fun QuizContent(
                     border = BorderStroke(borderWidth, borderColor)
                 ) {
                     Row(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -354,7 +362,7 @@ fun QuizContent(
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = TextPrimary,
-                                fontSize = 18.sp
+                                fontSize = 16.sp
                             ),
                             modifier = Modifier.weight(1f)
                         )
@@ -373,7 +381,6 @@ fun QuizContent(
 
             Spacer(Modifier.height(32.dp))
 
-            // The Button
             Button(
                 onClick = onNext,
                 enabled = selectedOption != null,
@@ -389,7 +396,6 @@ fun QuizContent(
                 Text("Next", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             }
 
-            // Bottom Spacer (Larger weight pushes content UP)
             Spacer(modifier = Modifier.weight(1f))
         }
     }
@@ -408,7 +414,7 @@ fun CompletionContent(onComplete: () -> Unit) {
         Spacer(Modifier.height(24.dp))
 
         Text(
-            text = "Excellent Work!",
+            text = "Lesson Complete!",
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.ExtraBold,
                 color = TextPrimary,
@@ -420,7 +426,7 @@ fun CompletionContent(onComplete: () -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         Text(
-            text = "You've completed the Breathing Reset quiz and earned points for your health journey.",
+            text = "You've learned the basics of coping with depression. Reach out for help if you need it.",
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyLarge.copy(
                 color = TextSecondary,
@@ -431,7 +437,6 @@ fun CompletionContent(onComplete: () -> Unit) {
 
         Spacer(Modifier.height(40.dp))
 
-        // XP Reward Card
         Card(
             colors = CardDefaults.cardColors(containerColor = CardWhite),
             border = BorderStroke(1.dp, BorderLight),
@@ -459,7 +464,38 @@ fun CompletionContent(onComplete: () -> Unit) {
             }
         }
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(24.dp))
+        Surface(
+            color = Color(0xFFE3F2FD), // Light Blue
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // You might need to import androidx.compose.material.icons.filled.Call
+                Icon(
+                    imageVector = Icons.Filled.Call,
+                    contentDescription = "Phone",
+                    tint = Color(0xFF1565C0), // Darker Blue
+                    modifier = Modifier.size(24.dp)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Text(
+                    text = "Reach out to NHG Polyclinics' Psychology Services at 6355 3000 if you or your loved ones need professional help.",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color(0xFF0D47A1), // Dark Text Blue
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 18.sp
+                    )
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
 
         Button(
             onClick = onComplete,
@@ -479,9 +515,8 @@ fun updateUserXP(userId: String, points: Long) {
     val docRef = db.collection("users")
         .document(userId)
         .collection("companion")
-        .document("CAT")
+        .document("CAT") // Ideally, fetch the actual active pet ID here
 
-    // Assuming you want to give wallet XP for task completion
     docRef.update("xp", FieldValue.increment(points))
         .addOnSuccessListener { Log.d("Firebase", "XP updated successfully!") }
         .addOnFailureListener { e -> Log.e("Firebase", "Error updating XP", e) }

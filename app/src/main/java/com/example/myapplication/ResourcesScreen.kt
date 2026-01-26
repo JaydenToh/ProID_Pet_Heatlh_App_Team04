@@ -44,17 +44,16 @@ fun ResourcesScreen(
 
     // 2. Resource Data
     val allResources = remember {
-        listOf(
-            ResourceItem(
-                id = "res_1",
-                focusArea = FocusArea.ANXIETY,
-                title = "Breathing Reset",
-                description = "A short breathing exercise to calm your mind.",
-                minutes = 3,
-                type = ResourceType.QUIZ,
-                xp = 15,
-                category = "Breathing"
-            ),
+        listOf(ResourceItem(
+            id = "res_1",
+            focusArea = FocusArea.DEPRESSION, // Changed from ANXIETY
+            title = "Coping with Depression", // Changed from "Breathing Reset"
+            description = "Understand depression, recognize signs, and learn simple ways to cope.",
+            minutes = 5,
+            type = ResourceType.QUIZ,
+            xp = 15,
+            category = "Depression"
+        ),
             ResourceItem(
                 id = "res_2",
                 focusArea = FocusArea.ANXIETY,
